@@ -934,7 +934,7 @@ export default function Home() {
               ref={modalCloseRef}
               className="modal-close"
               type="button"
-              aria-label="Tutup ringkasan karya"
+              aria-label="Tutup pratinjau karya"
               onClick={() => setSelectedWork(null)}
             >
               ×
@@ -973,10 +973,6 @@ export default function Home() {
                   ))}
                 </span>
               )}
-              <span className="quick-preview-label">
-                <span aria-hidden="true" />
-                Ringkasan 0,6 detik
-              </span>
             </div>
 
             <div className="modal-content">
