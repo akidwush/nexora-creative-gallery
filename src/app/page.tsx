@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import type { MouseEvent as ReactMouseEvent, PointerEvent as ReactPointerEvent } from "react";
 import { useRouter } from "next/navigation";
 import ProtectedImage from "@/components/protected-image";
 import { getWhatsAppUrl } from "@/lib/gallery";
@@ -144,11 +145,38 @@ export default function Home() {
     "UI/UX",
   ]);
   const [isGalleryLoading, setIsGalleryLoading] = useState(true);
+  const [showLongPressHint, setShowLongPressHint] = useState(false);
+  const longPressTimerRef = useRef<number | null>(null);
+  const longPressTriggeredRef = useRef(false);
+  const pointerStartRef = useRef<{ x: number; y: number } | null>(null);
 
   useEffect(() => {
     const hasVisited = window.sessionStorage.getItem("nexora-gallery-intro");
     if (hasVisited) setIntroVisible(false);
+
+    const hintSeen = window.localStorage.getItem(
+      "nexora-work-longpress-hint-seen",
+    );
+    setShowLongPressHint(!hintSeen);
   }, []);
+
+  useEffect(() => {
+    if (!selectedWork) return;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setSelectedWork(null);
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [selectedWork]);
 
   useEffect(() => {
     let active = true;
@@ -207,6 +235,11 @@ export default function Home() {
     setIntroVisible(false);
   };
 
+  const dismissLongPressHint = () => {
+    window.localStorage.setItem("nexora-work-longpress-hint-seen", "true");
+    setShowLongPressHint(false);
+  };
+
   const openWork = (work: Work) => {
     if (work.id.startsWith("sample-")) {
       setSelectedWork(work);
@@ -214,6 +247,80 @@ export default function Home() {
     }
 
     router.push(`/karya/${encodeURIComponent(work.id)}`);
+  };
+
+  const clearLongPressTimer = () => {
+    if (longPressTimerRef.current !== null) {
+      window.clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+  };
+
+  const beginLongPress = (
+    work: Work,
+    event: ReactPointerEvent<HTMLButtonElement>,
+  ) => {
+    if (event.pointerType === "mouse" && event.button !== 0) return;
+
+    clearLongPressTimer();
+    longPressTriggeredRef.current = false;
+    pointerStartRef.current = { x: event.clientX, y: event.clientY };
+
+    longPressTimerRef.current = window.setTimeout(() => {
+      longPressTriggeredRef.current = true;
+      pointerStartRef.current = null;
+      setSelectedWork(work);
+      dismissLongPressHint();
+      navigator.vibrate?.(35);
+    }, 600);
+  };
+
+  const moveLongPress = (event: ReactPointerEvent<HTMLButtonElement>) => {
+    const start = pointerStartRef.current;
+    if (!start) return;
+
+    const distance = Math.hypot(
+      event.clientX - start.x,
+      event.clientY - start.y,
+    );
+
+    if (distance > 12) {
+      clearLongPressTimer();
+      pointerStartRef.current = null;
+      longPressTriggeredRef.current = false;
+    }
+  };
+
+  const endLongPress = () => {
+    const wasTriggered = longPressTriggeredRef.current;
+    clearLongPressTimer();
+    pointerStartRef.current = null;
+
+    if (wasTriggered) {
+      window.setTimeout(() => {
+        longPressTriggeredRef.current = false;
+      }, 0);
+    }
+  };
+
+  const cancelLongPress = () => {
+    clearLongPressTimer();
+    pointerStartRef.current = null;
+    longPressTriggeredRef.current = false;
+  };
+
+  const handleWorkClick = (
+    work: Work,
+    event: ReactMouseEvent<HTMLButtonElement>,
+  ) => {
+    if (longPressTriggeredRef.current) {
+      event.preventDefault();
+      event.stopPropagation();
+      longPressTriggeredRef.current = false;
+      return;
+    }
+
+    openWork(work);
   };
 
   const filteredWorks = useMemo(() => {
@@ -310,7 +417,13 @@ export default function Home() {
           className={`hero-art ${featuredWork.imageUrl ? "has-featured-image" : ""}`}
           aria-label={`Buka karya unggulan ${featuredWork.title}`}
           type="button"
-          onClick={() => openWork(featuredWork)}
+          onClick={(event) => handleWorkClick(featuredWork, event)}
+          onPointerDown={(event) => beginLongPress(featuredWork, event)}
+          onPointerMove={moveLongPress}
+          onPointerUp={endLongPress}
+          onPointerCancel={cancelLongPress}
+          onPointerLeave={cancelLongPress}
+          onContextMenu={(event) => event.preventDefault()}
         >
           {featuredWork.imageUrl &&
             (featuredWork.isProtected ? (
@@ -387,6 +500,23 @@ export default function Home() {
           <p className="gallery-loading">Memuat koleksi terbaru...</p>
         )}
 
+        {showLongPressHint && (
+          <div className="long-press-hint" role="status">
+            <span aria-hidden="true">◎</span>
+            <p>
+              Tahan kartu karya selama <strong>0,6 detik</strong> untuk melihat
+              ringkasan tanpa meninggalkan galeri.
+            </p>
+            <button
+              type="button"
+              aria-label="Tutup petunjuk"
+              onClick={dismissLongPressHint}
+            >
+              ×
+            </button>
+          </div>
+        )}
+
         <div className="work-grid">
           {filteredWorks.map((work, index) => (
             <button
@@ -394,7 +524,13 @@ export default function Home() {
               key={work.id}
               type="button"
               style={{ animationDelay: `${index * 70}ms` }}
-              onClick={() => openWork(work)}
+              onClick={(event) => handleWorkClick(work, event)}
+              onPointerDown={(event) => beginLongPress(work, event)}
+              onPointerMove={moveLongPress}
+              onPointerUp={endLongPress}
+              onPointerCancel={cancelLongPress}
+              onPointerLeave={cancelLongPress}
+              onContextMenu={(event) => event.preventDefault()}
             >
               <div
                 className={`work-art ${work.imageUrl ? "has-image" : ""}`}
@@ -504,13 +640,22 @@ export default function Home() {
           role="presentation"
           onClick={() => setSelectedWork(null)}
         >
-          <div
+          <article
             className="work-modal"
             role="dialog"
             aria-modal="true"
-            aria-label={selectedWork.title}
+            aria-labelledby="quick-work-title"
             onClick={(event) => event.stopPropagation()}
           >
+            <button
+              className="modal-close"
+              type="button"
+              aria-label="Tutup ringkasan karya"
+              onClick={() => setSelectedWork(null)}
+            >
+              ×
+            </button>
+
             <div
               className={`modal-art ${selectedWork.imageUrl ? "has-image" : ""}`}
               style={
@@ -522,7 +667,6 @@ export default function Home() {
                     }
               }
             >
-              <span className="art-category">{selectedWork.category}</span>
               {selectedWork.imageUrl &&
                 (selectedWork.isProtected ? (
                   <ProtectedImage
@@ -535,6 +679,7 @@ export default function Home() {
                     className="work-image"
                     src={selectedWork.imageUrl}
                     alt={selectedWork.title}
+                    draggable={false}
                   />
                 ))}
               {!selectedWork.imageUrl && (
@@ -544,56 +689,75 @@ export default function Home() {
                   ))}
                 </span>
               )}
+              <span className="quick-preview-label">PREVIEW 0,6 DETIK</span>
             </div>
+
             <div className="modal-content">
-              <button
-                className="modal-close"
-                type="button"
-                aria-label="Tutup detail"
-                onClick={() => setSelectedWork(null)}
-              >
-                ×
-              </button>
-              <p className="eyebrow">
-                {selectedWork.category} · {selectedWork.year}
-              </p>
-              <h2>{selectedWork.title}</h2>
-              <p className="modal-creator">
-                Karya pemenang oleh {selectedWork.creator}
-              </p>
-              <p className="modal-description">{selectedWork.description}</p>
-              <div className="creator-contact-list">
-                {selectedWhatsAppUrl && (
-                  <a
-                    className="primary-button"
-                    href={selectedWhatsAppUrl}
-                    rel="noreferrer"
-                    target="_blank"
-                  >
-                    WhatsApp kreator <span>↗</span>
-                  </a>
-                )}
-                {selectedWork.instagramUrl && (
-                  <a
-                    className="secondary-button"
-                    href={selectedWork.instagramUrl}
-                    rel="noreferrer"
-                    target="_blank"
-                  >
-                    Instagram ↗
-                  </a>
-                )}
-                {selectedWork.portfolioUrl && (
-                  <a
-                    className="secondary-button"
-                    href={selectedWork.portfolioUrl}
-                    rel="noreferrer"
-                    target="_blank"
-                  >
-                    Portfolio ↗
-                  </a>
-                )}
+              <div className="modal-tags" aria-label="Informasi karya">
+                <span>{selectedWork.category}</span>
+                <span>{selectedWork.year}</span>
+                {selectedWork.isFeatured && <span>Unggulan</span>}
+                {selectedWork.isProtected && <span>Dilindungi</span>}
               </div>
+
+              <h2 id="quick-work-title">{selectedWork.title}</h2>
+              <p className="modal-creator">
+                Karya pemenang oleh <strong>{selectedWork.creator}</strong>
+              </p>
+              <p className="modal-description">
+                {selectedWork.description || "Deskripsi karya belum ditambahkan."}
+              </p>
+
+              <div className="modal-actions">
+                {!selectedWork.id.startsWith("sample-") && (
+                  <button
+                    className="modal-detail-button"
+                    type="button"
+                    onClick={() => {
+                      setSelectedWork(null);
+                      router.push(
+                        `/karya/${encodeURIComponent(selectedWork.id)}`,
+                      );
+                    }}
+                  >
+                    Lihat detail lengkap <span>↗</span>
+                  </button>
+                )}
+
+                <div className="creator-contact-list">
+                  {selectedWhatsAppUrl && (
+                    <a
+                      className="secondary-button modal-contact-button"
+                      href={selectedWhatsAppUrl}
+                      rel="noreferrer"
+                      target="_blank"
+                    >
+                      WhatsApp ↗
+                    </a>
+                  )}
+                  {selectedWork.instagramUrl && (
+                    <a
+                      className="secondary-button modal-contact-button"
+                      href={selectedWork.instagramUrl}
+                      rel="noreferrer"
+                      target="_blank"
+                    >
+                      Instagram ↗
+                    </a>
+                  )}
+                  {selectedWork.portfolioUrl && (
+                    <a
+                      className="secondary-button modal-contact-button"
+                      href={selectedWork.portfolioUrl}
+                      rel="noreferrer"
+                      target="_blank"
+                    >
+                      Portofolio ↗
+                    </a>
+                  )}
+                </div>
+              </div>
+
               {!selectedWhatsAppUrl &&
                 !selectedWork.instagramUrl &&
                 !selectedWork.portfolioUrl && (
@@ -602,7 +766,7 @@ export default function Home() {
                   </p>
                 )}
             </div>
-          </div>
+          </article>
         </div>
       )}
     </main>
