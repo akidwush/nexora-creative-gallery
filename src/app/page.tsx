@@ -33,6 +33,8 @@ type Work = {
 
 type FilterPhase = "idle" | "exit" | "enter";
 
+const BRAND_TAGLINE = "Create. Inspire. Connect.";
+
 function mapDatabaseWork(work: GalleryWork): Work {
   return {
     id: work.id,
@@ -81,17 +83,17 @@ export default function Home() {
     const motionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
     prefersReducedMotionRef.current = motionQuery.matches;
 
-    const hasVisited = window.sessionStorage.getItem("nexora-gallery-intro");
+    const hasVisited = window.localStorage.getItem("hasSeenIntro");
     if (hasVisited || motionQuery.matches) {
       setIntroVisible(false);
     } else {
       introAutoTimerRef.current = window.setTimeout(() => {
-        window.sessionStorage.setItem("nexora-gallery-intro", "seen");
+        window.localStorage.setItem("hasSeenIntro", "true");
         setIntroLeaving(true);
         introExitTimerRef.current = window.setTimeout(() => {
           setIntroVisible(false);
-        }, 520);
-      }, 2700);
+        }, 360);
+      }, 1350);
     }
 
     const hintSeen = window.localStorage.getItem(
@@ -230,17 +232,39 @@ export default function Home() {
     };
   }, []);
 
+  const categoryCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+
+    works.forEach((work) => {
+      counts.set(work.category, (counts.get(work.category) ?? 0) + 1);
+    });
+
+    return counts;
+  }, [works]);
+
+  const visibleCategories = useMemo(() => {
+    const orderedCategories = categories.filter(
+      (category) =>
+        category !== "Semua" && (categoryCounts.get(category) ?? 0) > 0,
+    );
+    const missingCategories = Array.from(categoryCounts.keys()).filter(
+      (category) => !orderedCategories.includes(category),
+    );
+
+    return ["Semua", ...orderedCategories, ...missingCategories];
+  }, [categories, categoryCounts]);
+
   useEffect(() => {
     if (
       activeCategory !== "Semua" &&
-      !categories.includes(activeCategory)
+      !visibleCategories.includes(activeCategory)
     ) {
       setActiveCategory("Semua");
     }
-  }, [activeCategory, categories]);
+  }, [activeCategory, visibleCategories]);
 
   const enterGallery = (instant = false) => {
-    window.sessionStorage.setItem("nexora-gallery-intro", "seen");
+    window.localStorage.setItem("hasSeenIntro", "true");
 
     if (introAutoTimerRef.current !== null) {
       window.clearTimeout(introAutoTimerRef.current);
@@ -260,7 +284,7 @@ export default function Home() {
     setIntroLeaving(true);
     introExitTimerRef.current = window.setTimeout(() => {
       setIntroVisible(false);
-    }, 520);
+    }, 360);
   };
 
   const changeCategory = (category: string) => {
@@ -463,24 +487,9 @@ export default function Home() {
           <div className="intro-mark" aria-hidden="true">
             N
           </div>
-          <p className="eyebrow intro-eyebrow">NEXORA WINNER GALLERY</p>
-          <h1>
-            Terpilih.
-            <br />
-            Menang.
-            <br />
-            Diabadikan.
-          </h1>
-          <p className="intro-copy">
-            Galeri resmi karya pemenang event dan challenge Nexora.
-          </p>
-          <button
-            className="intro-button"
-            type="button"
-            onClick={() => enterGallery(false)}
-          >
-            Lihat karya pemenang <span>↗</span>
-          </button>
+          <p className="eyebrow intro-eyebrow">NEXORA CREATIVE GALLERY</p>
+          <h1>{BRAND_TAGLINE}</h1>
+          <p className="intro-copy">Galeri resmi karya pemenang Nexora.</p>
           <button
             className="skip-button"
             type="button"
@@ -507,7 +516,7 @@ export default function Home() {
           <a href="#about">Tentang</a>
         </nav>
         <a className="submit-link" href="#submit">
-          Konfirmasi karya <span>↗</span>
+          Panduan submit <span>↗</span>
         </a>
       </header>
 
@@ -527,6 +536,7 @@ export default function Home() {
             pemenang event serta challenge Nexora, lengkap dengan identitas
             kreatornya.
           </p>
+          <p className="brand-tagline">{BRAND_TAGLINE}</p>
           <a className="primary-button" href="#gallery">
             Lihat koleksi pemenang <span>↓</span>
           </a>
@@ -566,7 +576,7 @@ export default function Home() {
                 <div className="hero-orbit orbit-one" />
                 <div className="hero-orbit orbit-two" />
                 <div className="hero-sun" />
-                <div className="hero-word">NEXORA</div>
+                <div className="hero-word" aria-hidden="true">NEXORA</div>
               </>
             )}
             <div className="hero-caption">
@@ -595,26 +605,39 @@ export default function Home() {
 
         <div className="gallery-toolbar reveal-item" data-reveal>
           <div className="category-list" aria-label="Filter kategori">
-            {categories.map((category) => (
-              <button
-                className={selectedCategory === category ? "selected" : ""}
-                key={category}
-                type="button"
-                aria-pressed={selectedCategory === category}
-                onClick={() => changeCategory(category)}
-              >
-                {category}
-              </button>
-            ))}
+            {visibleCategories.map((category) => {
+              const count =
+                category === "Semua"
+                  ? works.length
+                  : (categoryCounts.get(category) ?? 0);
+
+              return (
+                <button
+                  className={selectedCategory === category ? "selected" : ""}
+                  key={category}
+                  type="button"
+                  aria-label={`${category}, ${count} karya`}
+                  aria-pressed={selectedCategory === category}
+                  onClick={() => changeCategory(category)}
+                >
+                  <span>{category}</span>
+                  <span className="category-count" aria-hidden="true">
+                    {count}
+                  </span>
+                </button>
+              );
+            })}
           </div>
           <label className="search-box">
+            <span className="sr-only">Cari karya</span>
             <span aria-hidden="true">⌕</span>
             <input
               type="search"
               value={query}
               onChange={(event) => setQuery(event.target.value)}
-              placeholder="Cari karya..."
+              placeholder="Cari judul atau nama kreator..."
               aria-label="Cari karya"
+              autoComplete="off"
             />
           </label>
         </div>
@@ -665,6 +688,7 @@ export default function Home() {
               className="work-card"
               key={work.id}
               type="button"
+              aria-label={`Buka karya ${work.title} oleh ${work.creator}`}
               style={
                 {
                   "--reveal-delay": `${Math.min(index, 9) * 55}ms`,
@@ -710,7 +734,7 @@ export default function Home() {
                     />
                   ))}
                 {!work.imageUrl && (
-                  <span className="art-label">
+                  <span className="art-label" aria-hidden="true">
                     {work.label.split("\n").map((line) => (
                       <span key={line}>{line}</span>
                     ))}
@@ -767,24 +791,50 @@ export default function Home() {
       </section>
 
       <section className="submit-section reveal-item" id="submit" data-reveal>
-        <p className="eyebrow">PEMENANG NEXORA?</p>
-        <h2>Konfirmasi karyamu.</h2>
+        <p className="eyebrow">PANDUAN KONFIRMASI KARYA</p>
+        <h2>Kirim tanpa menebak-nebak.</h2>
         <p className="submit-description">
-          Hubungi admin Nexora untuk mengirim file final dan data kreator.
+          Siapkan data berikut sebelum menghubungi admin agar karya dapat
+          diverifikasi dan dipublikasikan tanpa bolak-balik revisi.
         </p>
+
+        <ol className="submit-guide" aria-label="Syarat konfirmasi karya pemenang">
+          <li>
+            <span>01</span>
+            <div>
+              <strong>Pastikan karya terpilih</strong>
+              <p>Khusus pemenang event atau challenge resmi Nexora.</p>
+            </div>
+          </li>
+          <li>
+            <span>02</span>
+            <div>
+              <strong>Lengkapi identitas karya</strong>
+              <p>Judul, kategori, deskripsi singkat, nama kreator, tahun, dan kontak.</p>
+            </div>
+          </li>
+          <li>
+            <span>03</span>
+            <div>
+              <strong>Kirim file final</strong>
+              <p>JPG, PNG, WEBP, atau GIF dengan ukuran maksimal 50 MB.</p>
+            </div>
+          </li>
+        </ol>
+
         <a
           className="primary-button"
           href={nexoraWhatsAppUrl}
           rel="noreferrer"
           target="_blank"
         >
-          Hubungi Nexora via WhatsApp <span>↗</span>
+          Lanjut ke WhatsApp <span>↗</span>
         </a>
       </section>
 
       <footer className="site-footer reveal-item" data-reveal>
         <span>© 2026 NEXORA CREATIVE GALLERY</span>
-        <span>Terpilih · Menang · Diabadikan</span>
+        <span>{BRAND_TAGLINE}</span>
       </footer>
 
       {selectedWork && (
@@ -838,7 +888,7 @@ export default function Home() {
                   />
                 ))}
               {!selectedWork.imageUrl && (
-                <span className="art-label">
+                <span className="art-label" aria-hidden="true">
                   {selectedWork.label.split("\n").map((line) => (
                     <span key={line}>{line}</span>
                   ))}

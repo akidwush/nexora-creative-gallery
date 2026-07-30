@@ -1,0 +1,14 @@
+NEXORA CREATIVE GALLERY V5.4
+Content, Branding, Submit Guidance, and Accessibility
+
+Changes:
+- Unified tagline: Create. Inspire. Connect.
+- Intro uses localStorage key hasSeenIntro and appears only once per browser.
+- Intro is shorter than two seconds and no longer duplicates the hero CTA.
+- Empty categories are hidden and visible filters show artwork counts.
+- Search placeholder now explains title/creator search; aria-label retained.
+- Submit section now includes winner eligibility, required metadata, accepted formats, and 50 MB limit before WhatsApp.
+- Decorative oversized artwork text is aria-hidden.
+- Artwork cards have descriptive aria-labels.
+
+No SQL or new package is required.
