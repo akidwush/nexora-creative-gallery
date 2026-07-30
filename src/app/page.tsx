@@ -149,6 +149,7 @@ export default function Home() {
   const longPressTimerRef = useRef<number | null>(null);
   const longPressTriggeredRef = useRef(false);
   const pointerStartRef = useRef<{ x: number; y: number } | null>(null);
+  const modalCloseRef = useRef<HTMLButtonElement | null>(null);
 
   useEffect(() => {
     const hasVisited = window.sessionStorage.getItem("nexora-gallery-intro");
@@ -166,6 +167,10 @@ export default function Home() {
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
 
+    const focusFrame = window.requestAnimationFrame(() => {
+      modalCloseRef.current?.focus();
+    });
+
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") setSelectedWork(null);
     };
@@ -173,6 +178,7 @@ export default function Home() {
     window.addEventListener("keydown", handleKeyDown);
 
     return () => {
+      window.cancelAnimationFrame(focusFrame);
       document.body.style.overflow = previousOverflow;
       window.removeEventListener("keydown", handleKeyDown);
     };
@@ -645,9 +651,11 @@ export default function Home() {
             role="dialog"
             aria-modal="true"
             aria-labelledby="quick-work-title"
+            aria-describedby="quick-work-description"
             onClick={(event) => event.stopPropagation()}
           >
             <button
+              ref={modalCloseRef}
               className="modal-close"
               type="button"
               aria-label="Tutup ringkasan karya"
@@ -689,22 +697,28 @@ export default function Home() {
                   ))}
                 </span>
               )}
-              <span className="quick-preview-label">PREVIEW 0,6 DETIK</span>
+              <span className="quick-preview-label">
+                <span aria-hidden="true" />
+                Ringkasan 0,6 detik
+              </span>
             </div>
 
             <div className="modal-content">
-              <div className="modal-tags" aria-label="Informasi karya">
-                <span>{selectedWork.category}</span>
-                <span>{selectedWork.year}</span>
-                {selectedWork.isFeatured && <span>Unggulan</span>}
-                {selectedWork.isProtected && <span>Dilindungi</span>}
+              <div className="modal-content-head">
+                <p className="eyebrow modal-eyebrow">RINGKASAN KARYA</p>
+                <div className="modal-tags" aria-label="Informasi karya">
+                  <span>{selectedWork.category}</span>
+                  <span>{selectedWork.year}</span>
+                  {selectedWork.isFeatured && <span>Unggulan</span>}
+                  {selectedWork.isProtected && <span>Dilindungi</span>}
+                </div>
               </div>
 
               <h2 id="quick-work-title">{selectedWork.title}</h2>
               <p className="modal-creator">
                 Karya pemenang oleh <strong>{selectedWork.creator}</strong>
               </p>
-              <p className="modal-description">
+              <p className="modal-description" id="quick-work-description">
                 {selectedWork.description || "Deskripsi karya belum ditambahkan."}
               </p>
 

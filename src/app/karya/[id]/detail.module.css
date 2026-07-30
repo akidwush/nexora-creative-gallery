@@ -712,3 +712,129 @@
     transform: translateY(0);
   }
 }
+
+/* V4.3 — responsive typography and collision fixes */
+.page {
+  overflow-x: clip;
+}
+
+.header > *,
+.hero > *,
+.contentPanel,
+.creatorInfo,
+.relatedCard,
+.relatedCard > div:last-child {
+  min-width: 0;
+}
+
+.contentPanel h1,
+.creatorInfo h2,
+.description,
+.metaGrid dd,
+.relatedCard strong,
+.relatedCard small {
+  overflow-wrap: anywhere;
+}
+
+.contentPanel h1,
+.relatedHeading h2 {
+  text-wrap: balance;
+}
+
+.creatorInfo h2,
+.creatorInfo p {
+  line-height: 1.45;
+}
+
+.relatedCard strong,
+.relatedCard small {
+  display: block;
+}
+
+@media (max-width: 640px) {
+  .header {
+    gap: 0.45rem;
+    grid-template-columns: 40px minmax(0, 1fr) 40px;
+  }
+
+  .brand {
+    justify-self: center;
+    margin-left: 0;
+    max-width: 100%;
+  }
+
+  .brand > span:last-child {
+    min-width: 0;
+  }
+
+  .brand strong,
+  .brand small {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .contentPanel {
+    margin-top: 2rem;
+  }
+
+  .contentPanel h1 {
+    font-size: clamp(2.65rem, 13vw, 4.15rem);
+    line-height: 0.95;
+    margin-top: 1rem;
+  }
+
+  .creatorLine {
+    font-size: 0.8rem;
+    line-height: 1.6;
+  }
+
+  .description {
+    font-size: 0.88rem;
+    line-height: 1.75;
+  }
+
+  .creatorCard {
+    grid-template-columns: 2.8rem minmax(0, 1fr);
+    padding: 1rem;
+  }
+
+  .avatar {
+    height: 2.8rem;
+    width: 2.8rem;
+  }
+
+  .relatedCard {
+    flex-basis: min(76vw, 310px);
+  }
+}
+
+@media (max-width: 380px) {
+  .brand small {
+    display: none;
+  }
+
+  .brand strong {
+    font-size: 0.66rem;
+  }
+
+  .contentPanel h1 {
+    font-size: clamp(2.35rem, 12.5vw, 3.45rem);
+  }
+
+  .hero,
+  .relatedSection {
+    padding-left: 0.85rem;
+    padding-right: 0.85rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .header,
+  .imagePanel,
+  .contentPanel,
+  .relatedSection {
+    animation: none !important;
+  }
+}
+
