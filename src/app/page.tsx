@@ -42,88 +42,6 @@ function getViewTransitionName(id: string) {
   return `work-${id.replace(/[^a-zA-Z0-9_-]/g, "-")}`;
 }
 
-const fallbackWorks: Work[] = [
-  {
-    id: "sample-1",
-    title: "Afterglow",
-    creator: "Nexora Studio",
-    category: "Poster",
-    year: "2026",
-    description:
-      "Eksplorasi warna, cahaya, dan tipografi untuk poster visual bertema malam.",
-    label: "AFTER\nGLOW",
-    background:
-      "radial-gradient(circle at 72% 18%, #f8c7ff 0 4%, transparent 20%), linear-gradient(145deg, #161329 0%, #6e39b7 45%, #f47b62 100%)",
-    ratio: 4 / 5,
-    isFeatured: true,
-  },
-  {
-    id: "sample-2",
-    title: "Nusa Coffee",
-    creator: "Alvin V.",
-    category: "Branding",
-    year: "2026",
-    description:
-      "Konsep identitas visual minimal untuk kedai kopi lokal dengan karakter hangat.",
-    label: "NUSA\nCOFFEE",
-    background:
-      "linear-gradient(135deg, #f4dfc1 0%, #c8865a 44%, #542f2d 100%)",
-    ratio: 1,
-  },
-  {
-    id: "sample-3",
-    title: "Orbit 01",
-    creator: "Cyrvo Visuals",
-    category: "Illustration",
-    year: "2026",
-    description:
-      "Ilustrasi eksperimental tentang perjalanan manusia melewati ruang yang tidak dikenal.",
-    label: "ORBIT\n01",
-    background:
-      "radial-gradient(circle at 50% 38%, #f7dd90 0 5%, transparent 6%), radial-gradient(circle at 50% 38%, transparent 0 24%, #ee9b5b 25% 26%, transparent 27%), linear-gradient(160deg, #12252b 0%, #195f64 48%, #0c171e 100%)",
-    ratio: 3 / 4,
-  },
-  {
-    id: "sample-4",
-    title: "Nexora Dashboard",
-    creator: "Frantz Design",
-    category: "UI/UX",
-    year: "2026",
-    description:
-      "Eksplorasi dashboard komunitas dengan fokus pada hierarki informasi dan akses cepat.",
-    label: "NEXORA\nDASHBOARD",
-    background:
-      "linear-gradient(155deg, #101b3c 0%, #324ea3 44%, #7ba7ff 100%)",
-    ratio: 16 / 10,
-  },
-  {
-    id: "sample-5",
-    title: "Pulse",
-    creator: "Vien Motion",
-    category: "Motion",
-    year: "2026",
-    description:
-      "Frame konsep untuk identitas motion graphic yang dinamis dan berani.",
-    label: "PULSE",
-    background:
-      "radial-gradient(ellipse at 25% 80%, #ffd45b 0 7%, transparent 8%), linear-gradient(125deg, #f0443c 0%, #f07c3d 42%, #f7c950 100%)",
-    ratio: 4 / 5,
-  },
-  {
-    id: "sample-6",
-    title: "Quiet Type",
-    creator: "Seyu Studio",
-    category: "Poster",
-    year: "2026",
-    description:
-      "Komposisi editorial yang menempatkan tipografi sebagai elemen utama.",
-    label: "QUIET\nTYPE",
-    background:
-      "linear-gradient(135deg, #dfe3e8 0%, #a6b0bd 52%, #424b5a 100%)",
-    ratio: 3 / 4,
-  },
-];
-
 function mapDatabaseWork(work: GalleryWork): Work {
   return {
     id: work.id,
@@ -153,16 +71,10 @@ export default function Home() {
   const [filterPhase, setFilterPhase] = useState<FilterPhase>("idle");
   const [query, setQuery] = useState("");
   const [selectedWork, setSelectedWork] = useState<Work | null>(null);
-  const [works, setWorks] = useState<Work[]>(fallbackWorks);
-  const [categories, setCategories] = useState<string[]>([
-    "Semua",
-    "Poster",
-    "Branding",
-    "Illustration",
-    "Motion",
-    "UI/UX",
-  ]);
+  const [works, setWorks] = useState<Work[]>([]);
+  const [categories, setCategories] = useState<string[]>(["Semua"]);
   const [isGalleryLoading, setIsGalleryLoading] = useState(true);
+  const [galleryLoadError, setGalleryLoadError] = useState("");
   const [showLongPressHint, setShowLongPressHint] = useState(false);
   const longPressTimerRef = useRef<number | null>(null);
   const longPressTriggeredRef = useRef(false);
@@ -238,8 +150,15 @@ export default function Home() {
 
   useEffect(() => {
     let active = true;
+    let requestSequence = 0;
 
-    async function loadGallery() {
+    async function loadGallery(silent = false) {
+      const requestId = ++requestSequence;
+
+      if (!silent) {
+        setIsGalleryLoading(true);
+      }
+
       const [worksResult, categoriesResult] = await Promise.all([
         supabase
           .from("gallery_works")
@@ -253,29 +172,70 @@ export default function Home() {
           .order("sort_order", { ascending: true }),
       ]);
 
-      if (!active) return;
+      if (!active || requestId !== requestSequence) return;
 
-      if (!worksResult.error && worksResult.data) {
-        const databaseWorks = (worksResult.data as GalleryWork[]).map(
-          mapDatabaseWork,
+      const firstError = worksResult.error ?? categoriesResult.error;
+      if (firstError) {
+        setGalleryLoadError(
+          `Koleksi terbaru gagal dimuat: ${firstError.message}`,
         );
-        setWorks(databaseWorks);
+        setIsGalleryLoading(false);
+        return;
       }
 
-      if (!categoriesResult.error && categoriesResult.data) {
-        const databaseCategories = (
-          categoriesResult.data as GalleryCategory[]
-        ).map((category) => category.name);
-        setCategories(["Semua", ...databaseCategories]);
-      }
+      const databaseWorks = ((worksResult.data ?? []) as GalleryWork[]).map(
+        mapDatabaseWork,
+      );
+      const databaseCategories = (
+        (categoriesResult.data ?? []) as GalleryCategory[]
+      ).map((category) => category.name);
 
+      setWorks(databaseWorks);
+      setCategories(["Semua", ...databaseCategories]);
+      setGalleryLoadError("");
       setIsGalleryLoading(false);
     }
 
+    const refreshGallery = () => {
+      void loadGallery(true);
+    };
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") refreshGallery();
+    };
+    const handleStorage = (event: StorageEvent) => {
+      if (event.key === "nexora-gallery-updated-at") refreshGallery();
+    };
+
     void loadGallery();
+
+    window.addEventListener("focus", refreshGallery);
+    window.addEventListener("pageshow", refreshGallery);
+    window.addEventListener("storage", handleStorage);
+    window.addEventListener("nexora-gallery-updated", refreshGallery);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    const realtimeChannel = supabase
+      .channel("nexora-public-gallery-sync")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "gallery_works" },
+        refreshGallery,
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "gallery_categories" },
+        refreshGallery,
+      )
+      .subscribe();
 
     return () => {
       active = false;
+      window.removeEventListener("focus", refreshGallery);
+      window.removeEventListener("pageshow", refreshGallery);
+      window.removeEventListener("storage", handleStorage);
+      window.removeEventListener("nexora-gallery-updated", refreshGallery);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      void supabase.removeChannel(realtimeChannel);
     };
   }, []);
 
@@ -502,8 +462,7 @@ export default function Home() {
 
   const selectedCategory = pendingCategory ?? activeCategory;
 
-  const featuredWork =
-    works.find((work) => work.isFeatured) ?? works[0] ?? fallbackWorks[0];
+  const featuredWork = works.find((work) => work.isFeatured) ?? null;
   const selectedWhatsAppUrl = selectedWork
     ? getWhatsAppUrl(selectedWork.whatsapp, selectedWork.title)
     : null;
@@ -570,7 +529,10 @@ export default function Home() {
         </a>
       </header>
 
-      <section className="hero-section" id="top">
+      <section
+        className={`hero-section ${featuredWork ? "" : "hero-section-no-featured"}`}
+        id="top"
+      >
         <div className="hero-copy reveal-item" data-reveal>
           <p className="eyebrow">GALERI PEMENANG NEXORA</p>
           <h2>
@@ -588,51 +550,53 @@ export default function Home() {
           </a>
         </div>
 
-        <button
-          className={`hero-art reveal-item ${featuredWork.imageUrl ? "has-featured-image" : ""}`}
-          data-reveal
-          aria-label={`Buka karya unggulan ${featuredWork.title}`}
-          type="button"
-          onClick={(event) => handleWorkClick(featuredWork, event)}
-          onPointerDown={(event) => beginLongPress(featuredWork, event)}
-          onPointerMove={moveLongPress}
-          onPointerUp={endLongPress}
-          onPointerCancel={cancelLongPress}
-          onPointerLeave={cancelLongPress}
-          onContextMenu={(event) => event.preventDefault()}
-        >
-          {featuredWork.imageUrl &&
-            (featuredWork.isProtected ? (
-              <ProtectedImage
-                fill
-                imageClassName="hero-featured-image"
-                src={featuredWork.imageUrl}
-                alt={featuredWork.title}
-              />
-            ) : (
-              <img
-                className="hero-featured-image"
-                src={featuredWork.imageUrl}
-                alt={featuredWork.title}
-              />
-            ))}
-          {!featuredWork.imageUrl && (
-            <>
-              <div className="hero-orbit orbit-one" />
-              <div className="hero-orbit orbit-two" />
-              <div className="hero-sun" />
-              <div className="hero-word">NEXORA</div>
-            </>
-          )}
-          <div className="hero-caption">
-            <span>01 / FEATURED WINNER</span>
-            <strong>{featuredWork.title}</strong>
-            <small>
-              {featuredWork.category} · {featuredWork.creator}
-            </small>
-          </div>
-          <span className="hero-number">01</span>
-        </button>
+        {featuredWork && (
+          <button
+            className={`hero-art reveal-item ${featuredWork.imageUrl ? "has-featured-image" : ""}`}
+            data-reveal
+            aria-label={`Buka karya unggulan ${featuredWork.title}`}
+            type="button"
+            onClick={(event) => handleWorkClick(featuredWork, event)}
+            onPointerDown={(event) => beginLongPress(featuredWork, event)}
+            onPointerMove={moveLongPress}
+            onPointerUp={endLongPress}
+            onPointerCancel={cancelLongPress}
+            onPointerLeave={cancelLongPress}
+            onContextMenu={(event) => event.preventDefault()}
+          >
+            {featuredWork.imageUrl &&
+              (featuredWork.isProtected ? (
+                <ProtectedImage
+                  fill
+                  imageClassName="hero-featured-image"
+                  src={featuredWork.imageUrl}
+                  alt={featuredWork.title}
+                />
+              ) : (
+                <img
+                  className="hero-featured-image"
+                  src={featuredWork.imageUrl}
+                  alt={featuredWork.title}
+                />
+              ))}
+            {!featuredWork.imageUrl && (
+              <>
+                <div className="hero-orbit orbit-one" />
+                <div className="hero-orbit orbit-two" />
+                <div className="hero-sun" />
+                <div className="hero-word">NEXORA</div>
+              </>
+            )}
+            <div className="hero-caption">
+              <span>01 / FEATURED WINNER</span>
+              <strong>{featuredWork.title}</strong>
+              <small>
+                {featuredWork.category} · {featuredWork.creator}
+              </small>
+            </div>
+            <span className="hero-number">01</span>
+          </button>
+        )}
       </section>
 
       <section className="gallery-section" id="gallery">
@@ -679,7 +643,16 @@ export default function Home() {
           </p>
         )}
 
-        {showLongPressHint && (
+        {galleryLoadError && (
+          <div className="gallery-load-error" role="alert">
+            <p>{galleryLoadError}</p>
+            <button type="button" onClick={() => window.location.reload()}>
+              Muat ulang
+            </button>
+          </div>
+        )}
+
+        {showLongPressHint && works.length > 0 && (
           <div
             className="long-press-hint reveal-item"
             role="status"
@@ -777,18 +750,24 @@ export default function Home() {
           ))}
         </div>
 
-        {filteredWorks.length === 0 && (
+        {!isGalleryLoading && !galleryLoadError && filteredWorks.length === 0 && (
           <div className="empty-state reveal-item" data-reveal>
-            <p>Belum ada karya yang cocok.</p>
-            <button
-              type="button"
-              onClick={() => {
-                setQuery("");
-                changeCategory("Semua");
-              }}
-            >
-              Reset pencarian
-            </button>
+            <p>
+              {works.length === 0
+                ? "Belum ada karya yang dipublikasikan."
+                : "Belum ada karya yang cocok."}
+            </p>
+            {works.length > 0 && (
+              <button
+                type="button"
+                onClick={() => {
+                  setQuery("");
+                  changeCategory("Semua");
+                }}
+              >
+                Reset pencarian
+              </button>
+            )}
           </div>
         )}
       </section>

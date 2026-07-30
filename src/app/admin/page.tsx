@@ -53,45 +53,6 @@ type WorkStatusFilter =
 const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
 const PAGE_SIZE = 6;
 
-type SupabaseErrorShape = {
-  message?: string;
-  details?: string;
-  hint?: string;
-  code?: string;
-};
-
-function getSaveErrorMessage(error: unknown) {
-  if (error instanceof Error) return error.message;
-
-  if (error && typeof error === "object") {
-    const candidate = error as SupabaseErrorShape;
-    const parts = [candidate.message, candidate.details, candidate.hint].filter(
-      (value): value is string => Boolean(value?.trim()),
-    );
-
-    if (parts.length > 0) {
-      return `${parts.join(" · ")}${candidate.code ? ` (kode ${candidate.code})` : ""}`;
-    }
-  }
-
-  return "Terjadi kesalahan yang tidak diketahui. Muat ulang halaman lalu coba lagi.";
-}
-
-function isMissingProtectionColumnError(error: unknown) {
-  if (!error || typeof error !== "object") return false;
-
-  const candidate = error as SupabaseErrorShape;
-  const message = `${candidate.message ?? ""} ${candidate.details ?? ""} ${candidate.hint ?? ""}`.toLowerCase();
-
-  return (
-    message.includes("is_protected") &&
-    (message.includes("column") ||
-      message.includes("schema cache") ||
-      candidate.code === "PGRST204" ||
-      candidate.code === "42703")
-  );
-}
-
 export default function AdminDashboardPage() {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -340,6 +301,12 @@ export default function AdminDashboardPage() {
     return `${dimensions} · ${sizeResult}`;
   }
 
+  function notifyPublicGalleryChanged() {
+    const timestamp = String(Date.now());
+    window.localStorage.setItem("nexora-gallery-updated-at", timestamp);
+    window.dispatchEvent(new Event("nexora-gallery-updated"));
+  }
+
   function resetForm() {
     setForm({
       ...EMPTY_WORK_FORM,
@@ -455,26 +422,12 @@ export default function AdminDashboardPage() {
       return;
     }
 
-    const normalizedCreatorWhatsapp = normalizeWhatsAppNumber(
-      form.creatorWhatsapp,
-    );
-
-    if (
-      normalizedCreatorWhatsapp &&
-      (normalizedCreatorWhatsapp.length < 8 ||
-        normalizedCreatorWhatsapp.length > 16)
-    ) {
-      setErrorMessage(
-        "Nomor WhatsApp harus berisi 8–16 digit. Gunakan format 08xxxx atau 628xxxx.",
-      );
-      return;
-    }
-
     const optimizationSummary = getOptimizationSummary(preparedImage);
 
     setIsSubmitting(true);
     let uploadedPath = "";
     let uploadCommitted = false;
+    let savedWorkId = existingWork?.id ?? "";
 
     try {
       let imagePath = existingWork?.image_path ?? "";
@@ -506,7 +459,7 @@ export default function AdminDashboardPage() {
       const creatorPayload = {
         name: creatorName,
         slug: slugify(creatorName) || `creator-${Date.now()}`,
-        whatsapp: normalizedCreatorWhatsapp || null,
+        whatsapp: normalizeWhatsAppNumber(form.creatorWhatsapp) || null,
         instagram_url: normalizeOptionalUrl(form.creatorInstagramUrl),
         portfolio_url: normalizeOptionalUrl(form.creatorPortfolioUrl),
       };
@@ -517,7 +470,7 @@ export default function AdminDashboardPage() {
 
       if (creatorError) throw creatorError;
 
-      const baseWorkPayload = {
+      const workPayload = {
         title,
         description,
         category: form.category,
@@ -530,44 +483,44 @@ export default function AdminDashboardPage() {
         year,
         is_featured: form.isFeatured,
         is_published: form.isPublished,
+        is_protected: form.isProtected,
         created_by: sessionUserId,
         updated_at: new Date().toISOString(),
       };
 
-      const saveWork = async (payload: Record<string, unknown>) => {
-        if (existingWork) {
-          const { error } = await supabase
-            .from("gallery_works")
-            .update(payload)
-            .eq("id", existingWork.id);
-          return error;
+      if (existingWork) {
+        const { error: updateError } = await supabase
+          .from("gallery_works")
+          .update(workPayload)
+          .eq("id", existingWork.id);
+
+        if (updateError) throw updateError;
+      } else {
+        const { data: insertedWork, error: insertError } = await supabase
+          .from("gallery_works")
+          .insert(workPayload)
+          .select("id")
+          .single();
+
+        if (insertError) throw insertError;
+        if (!insertedWork?.id) {
+          throw new Error("ID karya baru tidak diterima dari database.");
         }
-
-        const { error } = await supabase.from("gallery_works").insert(payload);
-        return error;
-      };
-
-      let workError = await saveWork({
-        ...baseWorkPayload,
-        is_protected: form.isProtected,
-      });
-      let protectionColumnSkipped = false;
-
-      // Proyek lama yang belum menjalankan migrasi proteksi tetap dapat
-      // menyimpan karya biasa. Karya yang diminta dilindungi tidak akan
-      // disimpan diam-diam tanpa status proteksi.
-      if (workError && isMissingProtectionColumnError(workError)) {
-        if (form.isProtected) {
-          throw new Error(
-            "Kolom proteksi karya belum aktif di Supabase. Jalankan supabase/add_work_protection.sql, lalu coba lagi.",
-          );
-        }
-
-        workError = await saveWork(baseWorkPayload);
-        protectionColumnSkipped = !workError;
+        savedWorkId = insertedWork.id;
       }
 
-      if (workError) throw workError;
+      if (form.isFeatured && savedWorkId) {
+        const { error: clearFeaturedError } = await supabase
+          .from("gallery_works")
+          .update({
+            is_featured: false,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("is_featured", true)
+          .neq("id", savedWorkId);
+
+        if (clearFeaturedError) throw clearFeaturedError;
+      }
 
       uploadCommitted = true;
 
@@ -582,28 +535,27 @@ export default function AdminDashboardPage() {
       }
 
       await loadGalleryData();
+      notifyPublicGalleryChanged();
       resetForm();
       const savedMessage = existingWork
         ? "Karya berhasil diperbarui."
         : "Karya berhasil diunggah dan langsung masuk ke galeri.";
 
-      const protectionNotice = protectionColumnSkipped
-        ? " Status proteksi belum tersedia, tetapi karya berhasil disimpan."
-        : "";
-
       setSuccessMessage(
-        `${
-          optimizationSummary
-            ? `${savedMessage} Hasil optimasi: ${optimizationSummary}.`
-            : savedMessage
-        }${protectionNotice}`,
+        optimizationSummary
+          ? `${savedMessage} Hasil optimasi: ${optimizationSummary}.`
+          : savedMessage,
       );
     } catch (error) {
       if (uploadedPath && !uploadCommitted) {
         await supabase.storage.from(GALLERY_BUCKET).remove([uploadedPath]);
       }
 
-      setErrorMessage(`Gagal menyimpan karya: ${getSaveErrorMessage(error)}`);
+      setErrorMessage(
+        error instanceof Error
+          ? `Gagal menyimpan karya: ${error.message}`
+          : "Gagal menyimpan karya.",
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -669,6 +621,7 @@ export default function AdminDashboardPage() {
 
       if (editingWorkId === work.id) resetForm();
       await loadGalleryData();
+      notifyPublicGalleryChanged();
       setSuccessMessage("Karya berhasil dihapus.");
       setDeleteTarget(null);
     } catch (error) {
@@ -975,7 +928,7 @@ export default function AdminDashboardPage() {
                 />
                 <span>
                   <strong>Karya unggulan</strong>
-                  <small>Prioritaskan karya pada area hero.</small>
+                  <small>Menjadi banner utama. Aktifkan untuk mengganti banner; nonaktifkan untuk menghapusnya.</small>
                 </span>
               </label>
               <label>

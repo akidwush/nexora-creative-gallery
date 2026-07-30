@@ -149,6 +149,16 @@ a {
   max-width: 33rem;
 }
 
+.hero-section.hero-section-no-featured {
+  grid-template-columns: minmax(0, 42rem);
+  justify-content: start;
+  min-height: auto;
+}
+
+.hero-section.hero-section-no-featured .hero-copy {
+  max-width: 42rem;
+}
+
 .hero-copy h2,
 .section-heading h2,
 .about-section h2,
@@ -979,6 +989,36 @@ a {
   letter-spacing: 0.08em;
   margin: 0 0 1rem;
   text-transform: uppercase;
+}
+
+.gallery-load-error {
+  align-items: center;
+  background: #fff1f1;
+  border: 1px solid #efc8c8;
+  border-radius: 1rem;
+  color: #8d3333;
+  display: flex;
+  gap: 1rem;
+  justify-content: space-between;
+  margin-bottom: 1.25rem;
+  padding: 1rem 1.1rem;
+}
+
+.gallery-load-error p {
+  font-size: 0.78rem;
+  margin: 0;
+}
+
+.gallery-load-error button {
+  background: transparent;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  color: inherit;
+  cursor: pointer;
+  flex: 0 0 auto;
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 0.65rem 0.85rem;
 }
 
 .creator-contact-list {
@@ -1875,5 +1915,13 @@ section[id] {
   ::view-transition-old(*),
   ::view-transition-new(*) {
     animation: none !important;
+  }
+}
+
+
+@media (max-width: 520px) {
+  .gallery-load-error {
+    align-items: flex-start;
+    flex-direction: column;
   }
 }

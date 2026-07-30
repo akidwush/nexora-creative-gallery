@@ -1,0 +1,29 @@
+NEXORA CREATIVE GALLERY V5.1 — LIVE SYNC & PANDUAN ADMIN
+
+PERBAIKAN
+- Menghapus seluruh kartu contoh bawaan (Afterglow, Nusa Coffee, dan lainnya) dari production.
+- Halaman publik selalu mengambil data terbaru dari Supabase.
+- Data dimuat ulang saat tab kembali aktif, browser kembali dari halaman detail, admin menyimpan/menghapus karya, dan saat perubahan realtime diterima.
+- Banner utama hanya tampil jika ada karya yang ditandai Karya unggulan.
+- Hanya satu karya yang dapat menjadi banner utama pada satu waktu.
+
+CARA MENGELOLA KARYA
+1. Menyembunyikan karya tanpa menghapus:
+   Dashboard Admin > Edit > matikan Publikasikan > Simpan perubahan.
+
+2. Menghapus karya permanen:
+   Dashboard Admin > Daftar karya > Hapus > Konfirmasi hapus.
+   Data dan file gambar Storage akan dihapus.
+
+3. Mengganti banner utama:
+   Dashboard Admin > Edit karya yang baru > aktifkan Karya unggulan > Simpan.
+   Banner lama otomatis tidak lagi menjadi unggulan.
+
+4. Menghapus banner utama:
+   Dashboard Admin > Edit karya yang sedang unggulan > matikan Karya unggulan > Simpan.
+   Bagian banner gambar di hero akan hilang, tetapi karya tetap berada di galeri.
+
+5. Melindungi karya tertentu:
+   Dashboard Admin > Edit > aktifkan Lindungi karya > Simpan.
+
+Tidak memerlukan SQL atau package baru.
