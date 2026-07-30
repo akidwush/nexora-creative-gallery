@@ -1620,3 +1620,157 @@ a {
   }
 }
 
+
+/* V4.4 — compact universal long-press preview + edge-to-edge artwork */
+@media (max-width: 680px) {
+  .work-modal-backdrop {
+    align-items: center;
+    padding:
+      max(0.75rem, env(safe-area-inset-top))
+      max(0.75rem, env(safe-area-inset-right))
+      max(0.75rem, env(safe-area-inset-bottom))
+      max(0.75rem, env(safe-area-inset-left));
+  }
+
+  .work-modal {
+    border-radius: 1.15rem;
+    display: flex;
+    flex-direction: column;
+    max-height: min(80dvh, 680px);
+    max-width: 520px;
+    min-height: 0;
+    overflow: hidden;
+    width: min(calc(100vw - 2.5rem), 520px);
+  }
+
+  .modal-art,
+  .modal-art.has-image {
+    background: #17151b !important;
+    flex: 0 0 clamp(190px, 28dvh, 260px);
+    height: clamp(190px, 28dvh, 260px);
+    min-height: 0;
+    width: 100%;
+  }
+
+  .modal-art .work-image,
+  .modal-art > [data-protected-artwork="true"] {
+    height: 100%;
+    max-height: none;
+    width: 100%;
+  }
+
+  .modal-art .work-image,
+  .modal-art > [data-protected-artwork="true"] img {
+    height: 100% !important;
+    object-fit: cover !important;
+    object-position: center;
+    width: 100% !important;
+  }
+
+  .modal-content {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 1rem 1rem max(1rem, env(safe-area-inset-bottom));
+  }
+
+  .modal-content-head {
+    gap: 0.55rem;
+    padding-right: 2.7rem;
+  }
+
+  .modal-content h2 {
+    font-size: clamp(1.85rem, 8.5vw, 2.65rem);
+    line-height: 0.98;
+    margin: 1rem 0 0.55rem;
+  }
+
+  .modal-creator,
+  .modal-description {
+    font-size: 0.75rem;
+  }
+
+  .modal-description {
+    line-height: 1.62;
+    margin-top: 0.8rem;
+    -webkit-line-clamp: 3;
+  }
+
+  .modal-actions {
+    margin-top: 0.9rem;
+    padding-top: 0.85rem;
+  }
+
+  .modal-detail-button {
+    min-height: 44px;
+    padding: 0.75rem 0.95rem;
+  }
+
+  .modal-actions .creator-contact-list {
+    gap: 0.45rem;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    margin-top: 0.55rem;
+  }
+
+  .modal-contact-button {
+    min-height: 42px;
+    padding: 0.7rem 0.55rem;
+  }
+
+  .modal-tags span {
+    font-size: 0.56rem;
+    padding: 0.4rem 0.58rem;
+  }
+
+  .quick-preview-label {
+    bottom: 0.55rem;
+    font-size: 0.43rem;
+    left: 0.55rem;
+    padding: 0.42rem 0.55rem;
+  }
+
+  .modal-close {
+    height: 2.35rem;
+    right: 0.55rem;
+    top: 0.55rem;
+    width: 2.35rem;
+  }
+}
+
+@media (max-width: 390px) {
+  .work-modal {
+    max-height: 82dvh;
+    width: calc(100vw - 1.5rem);
+  }
+
+  .modal-art,
+  .modal-art.has-image {
+    flex-basis: clamp(175px, 26dvh, 225px);
+    height: clamp(175px, 26dvh, 225px);
+  }
+
+  .modal-content {
+    padding-left: 0.85rem;
+    padding-right: 0.85rem;
+  }
+
+  .modal-actions .creator-contact-list {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (orientation: landscape) and (max-height: 540px) {
+  .work-modal {
+    display: grid;
+    grid-template-columns: minmax(220px, 0.9fr) minmax(280px, 1.1fr);
+    max-height: calc(100dvh - 1.5rem);
+    max-width: 760px;
+    width: min(calc(100vw - 1.5rem), 760px);
+  }
+
+  .modal-art,
+  .modal-art.has-image {
+    height: 100%;
+    min-height: 0;
+  }
+}
