@@ -1,0 +1,11 @@
+NEXORA CREATIVE GALLERY V5.4.1 — EMERGENCY FILTER RELIABILITY FIX
+
+Perbaikan:
+- Menghapus transisi filter berbasis timer/CSS yang bisa meninggalkan kartu opacity: 0.
+- Mengganti transisi dengan Web Animations API pada satu layer grid.
+- Animasi aktif selalu dibatalkan dan di-reset sebelum filter berikutnya.
+- Klik kategori cepat/berulang tidak membuat karya hilang.
+- Fallback instan tersedia jika browser tidak mendukung Web Animations API.
+- prefers-reduced-motion tetap dihormati.
+
+Tidak membutuhkan SQL atau package baru.

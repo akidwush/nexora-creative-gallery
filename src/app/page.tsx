@@ -31,8 +31,6 @@ type Work = {
   isProtected?: boolean;
 };
 
-type FilterPhase = "idle" | "exit" | "enter";
-
 const BRAND_TAGLINE = "Create. Inspire. Connect.";
 
 function mapDatabaseWork(work: GalleryWork): Work {
@@ -61,7 +59,6 @@ export default function Home() {
   const [introLeaving, setIntroLeaving] = useState(false);
   const [activeCategory, setActiveCategory] = useState("Semua");
   const [pendingCategory, setPendingCategory] = useState<string | null>(null);
-  const [filterPhase, setFilterPhase] = useState<FilterPhase>("idle");
   const [query, setQuery] = useState("");
   const [selectedWork, setSelectedWork] = useState<Work | null>(null);
   const [works, setWorks] = useState<Work[]>([]);
@@ -75,7 +72,9 @@ export default function Home() {
   const modalCloseRef = useRef<HTMLButtonElement | null>(null);
   const introAutoTimerRef = useRef<number | null>(null);
   const introExitTimerRef = useRef<number | null>(null);
-  const filterTimersRef = useRef<number[]>([]);
+  const workGridRef = useRef<HTMLDivElement | null>(null);
+  const filterAnimationRef = useRef<Animation | null>(null);
+  const filterRequestRef = useRef(0);
   const revealObserverRef = useRef<IntersectionObserver | null>(null);
   const prefersReducedMotionRef = useRef(false);
 
@@ -113,7 +112,9 @@ export default function Home() {
       if (introExitTimerRef.current !== null) {
         window.clearTimeout(introExitTimerRef.current);
       }
-      filterTimersRef.current.forEach((timer) => window.clearTimeout(timer));
+      filterRequestRef.current += 1;
+      filterAnimationRef.current?.cancel();
+      filterAnimationRef.current = null;
       motionQuery.removeEventListener?.("change", handleMotionChange);
     };
   }, []);
@@ -289,34 +290,86 @@ export default function Home() {
 
   const changeCategory = (category: string) => {
     if (category === activeCategory && pendingCategory === null) return;
+    if (category === pendingCategory) return;
 
-    filterTimersRef.current.forEach((timer) => window.clearTimeout(timer));
-    filterTimersRef.current = [];
+    const requestId = ++filterRequestRef.current;
+    const grid = workGridRef.current;
 
-    if (prefersReducedMotionRef.current) {
+    filterAnimationRef.current?.cancel();
+    filterAnimationRef.current = null;
+    setPendingCategory(category);
+
+    if (
+      prefersReducedMotionRef.current ||
+      !grid ||
+      typeof grid.animate !== "function"
+    ) {
       setActiveCategory(category);
       setPendingCategory(null);
-      setFilterPhase("idle");
       return;
     }
 
-    // Use one controlled CSS sequence. Running the View Transition API together
-    // with card animations caused duplicate snapshots and visible flicker on Android.
-    setPendingCategory(category);
-    setFilterPhase("exit");
+    // Animate the grid as one compositor layer. The previous timer-based card
+    // sequence could leave cards at opacity: 0 when Android delayed or cancelled
+    // a timer. Web Animations always gets cancelled/reset before the next filter.
+    const exitAnimation = grid.animate(
+      [
+        { opacity: 1, transform: "translate3d(0, 0, 0) scale(1)" },
+        { opacity: 0, transform: "translate3d(0, 5px, 0) scale(0.985)" },
+      ],
+      {
+        duration: 120,
+        easing: "cubic-bezier(0.4, 0, 1, 1)",
+        fill: "forwards",
+      },
+    );
 
-    const swapTimer = window.setTimeout(() => {
-      setActiveCategory(category);
-      setPendingCategory(null);
-      setFilterPhase("enter");
+    filterAnimationRef.current = exitAnimation;
 
-      const settleTimer = window.setTimeout(() => {
-        setFilterPhase("idle");
-      }, 430);
-      filterTimersRef.current.push(settleTimer);
-    }, 175);
+    void exitAnimation.finished
+      .then(() => {
+        if (requestId !== filterRequestRef.current) return;
 
-    filterTimersRef.current.push(swapTimer);
+        setActiveCategory(category);
+
+        // Wait until React has painted the newly filtered cards before fading in.
+        window.requestAnimationFrame(() => {
+          window.requestAnimationFrame(() => {
+            if (requestId !== filterRequestRef.current) return;
+
+            exitAnimation.cancel();
+
+            const enterAnimation = grid.animate(
+              [
+                {
+                  opacity: 0,
+                  transform: "translate3d(0, 7px, 0) scale(0.985)",
+                },
+                {
+                  opacity: 1,
+                  transform: "translate3d(0, 0, 0) scale(1)",
+                },
+              ],
+              {
+                duration: 220,
+                easing: "cubic-bezier(0.22, 1, 0.36, 1)",
+              },
+            );
+
+            filterAnimationRef.current = enterAnimation;
+
+            void enterAnimation.finished
+              .catch(() => undefined)
+              .finally(() => {
+                if (requestId !== filterRequestRef.current) return;
+                enterAnimation.cancel();
+                filterAnimationRef.current = null;
+                setPendingCategory(null);
+              });
+          });
+        });
+      })
+      .catch(() => undefined);
   };
 
   const dismissLongPressHint = () => {
@@ -679,9 +732,10 @@ export default function Home() {
         )}
 
         <div
-          className={`work-grid reveal-grid filter-${filterPhase}`}
+          ref={workGridRef}
+          className="work-grid reveal-grid"
           data-reveal
-          aria-busy={filterPhase !== "idle"}
+          aria-busy={pendingCategory !== null}
         >
           {filteredWorks.map((work, index) => (
             <button
