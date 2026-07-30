@@ -1,133 +1,203 @@
-'use client';
+"use client";
 
-import { useEffect, useMemo, useState } from 'react';
-
-type Category =
-  | 'Semua'
-  | 'Poster'
-  | 'Branding'
-  | 'Illustration'
-  | 'Motion'
-  | 'UI/UX';
+import { useEffect, useMemo, useState } from "react";
+import { getWhatsAppUrl } from "@/lib/gallery";
+import type { GalleryCategory, GalleryWork } from "@/lib/gallery";
+import { supabase } from "@/lib/supabase";
 
 type Work = {
-  id: number;
+  id: string;
   title: string;
   creator: string;
-  category: Exclude<Category, 'Semua'>;
+  category: string;
   year: string;
   description: string;
   label: string;
   background: string;
   ratio: number;
   imageUrl?: string;
+  whatsapp?: string | null;
+  instagramUrl?: string | null;
+  portfolioUrl?: string | null;
+  isFeatured?: boolean;
 };
 
-const categories: Category[] = [
-  'Semua',
-  'Poster',
-  'Branding',
-  'Illustration',
-  'Motion',
-  'UI/UX',
-];
-
-const works: Work[] = [
+const fallbackWorks: Work[] = [
   {
-    id: 1,
-    title: 'Afterglow',
-    creator: 'Nexora Studio',
-    category: 'Poster',
-    year: '2026',
+    id: "sample-1",
+    title: "Afterglow",
+    creator: "Nexora Studio",
+    category: "Poster",
+    year: "2026",
     description:
-      'Eksplorasi warna, cahaya, dan tipografi untuk poster visual bertema malam.',
-    label: 'AFTER\nGLOW',
+      "Eksplorasi warna, cahaya, dan tipografi untuk poster visual bertema malam.",
+    label: "AFTER\nGLOW",
     background:
-      'radial-gradient(circle at 72% 18%, #f8c7ff 0 4%, transparent 20%), linear-gradient(145deg, #161329 0%, #6e39b7 45%, #f47b62 100%)',
+      "radial-gradient(circle at 72% 18%, #f8c7ff 0 4%, transparent 20%), linear-gradient(145deg, #161329 0%, #6e39b7 45%, #f47b62 100%)",
     ratio: 4 / 5,
+    isFeatured: true,
   },
   {
-    id: 2,
-    title: 'Nusa Coffee',
-    creator: 'Alvin V.',
-    category: 'Branding',
-    year: '2026',
+    id: "sample-2",
+    title: "Nusa Coffee",
+    creator: "Alvin V.",
+    category: "Branding",
+    year: "2026",
     description:
-      'Konsep identitas visual minimal untuk kedai kopi lokal dengan karakter hangat.',
-    label: 'NUSA\nCOFFEE',
+      "Konsep identitas visual minimal untuk kedai kopi lokal dengan karakter hangat.",
+    label: "NUSA\nCOFFEE",
     background:
-      'linear-gradient(135deg, #f4dfc1 0%, #c8865a 44%, #542f2d 100%)',
+      "linear-gradient(135deg, #f4dfc1 0%, #c8865a 44%, #542f2d 100%)",
     ratio: 1,
   },
   {
-    id: 3,
-    title: 'Orbit 01',
-    creator: 'Cyrvo Visuals',
-    category: 'Illustration',
-    year: '2026',
+    id: "sample-3",
+    title: "Orbit 01",
+    creator: "Cyrvo Visuals",
+    category: "Illustration",
+    year: "2026",
     description:
-      'Ilustrasi eksperimental tentang perjalanan manusia melewati ruang yang tidak dikenal.',
-    label: 'ORBIT\n01',
+      "Ilustrasi eksperimental tentang perjalanan manusia melewati ruang yang tidak dikenal.",
+    label: "ORBIT\n01",
     background:
-      'radial-gradient(circle at 50% 38%, #f7dd90 0 5%, transparent 6%), radial-gradient(circle at 50% 38%, transparent 0 24%, #ee9b5b 25% 26%, transparent 27%), linear-gradient(160deg, #12252b 0%, #195f64 48%, #0c171e 100%)',
+      "radial-gradient(circle at 50% 38%, #f7dd90 0 5%, transparent 6%), radial-gradient(circle at 50% 38%, transparent 0 24%, #ee9b5b 25% 26%, transparent 27%), linear-gradient(160deg, #12252b 0%, #195f64 48%, #0c171e 100%)",
     ratio: 3 / 4,
   },
   {
-    id: 4,
-    title: 'Nexora Dashboard',
-    creator: 'Frantz Design',
-    category: 'UI/UX',
-    year: '2026',
+    id: "sample-4",
+    title: "Nexora Dashboard",
+    creator: "Frantz Design",
+    category: "UI/UX",
+    year: "2026",
     description:
-      'Eksplorasi dashboard komunitas dengan fokus pada hierarki informasi dan akses cepat.',
-    label: 'NEXORA\nDASHBOARD',
+      "Eksplorasi dashboard komunitas dengan fokus pada hierarki informasi dan akses cepat.",
+    label: "NEXORA\nDASHBOARD",
     background:
-      'linear-gradient(155deg, #101b3c 0%, #324ea3 44%, #7ba7ff 100%)',
+      "linear-gradient(155deg, #101b3c 0%, #324ea3 44%, #7ba7ff 100%)",
     ratio: 16 / 10,
   },
   {
-    id: 5,
-    title: 'Pulse',
-    creator: 'Vien Motion',
-    category: 'Motion',
-    year: '2026',
+    id: "sample-5",
+    title: "Pulse",
+    creator: "Vien Motion",
+    category: "Motion",
+    year: "2026",
     description:
-      'Frame konsep untuk identitas motion graphic yang dinamis dan berani.',
-    label: 'PULSE',
+      "Frame konsep untuk identitas motion graphic yang dinamis dan berani.",
+    label: "PULSE",
     background:
-      'radial-gradient(ellipse at 25% 80%, #ffd45b 0 7%, transparent 8%), linear-gradient(125deg, #f0443c 0%, #f07c3d 42%, #f7c950 100%)',
+      "radial-gradient(ellipse at 25% 80%, #ffd45b 0 7%, transparent 8%), linear-gradient(125deg, #f0443c 0%, #f07c3d 42%, #f7c950 100%)",
     ratio: 4 / 5,
   },
   {
-    id: 6,
-    title: 'Quiet Type',
-    creator: 'Seyu Studio',
-    category: 'Poster',
-    year: '2026',
+    id: "sample-6",
+    title: "Quiet Type",
+    creator: "Seyu Studio",
+    category: "Poster",
+    year: "2026",
     description:
-      'Komposisi editorial yang menempatkan tipografi sebagai elemen utama.',
-    label: 'QUIET\nTYPE',
+      "Komposisi editorial yang menempatkan tipografi sebagai elemen utama.",
+    label: "QUIET\nTYPE",
     background:
-      'linear-gradient(135deg, #dfe3e8 0%, #a6b0bd 52%, #424b5a 100%)',
+      "linear-gradient(135deg, #dfe3e8 0%, #a6b0bd 52%, #424b5a 100%)",
     ratio: 3 / 4,
   },
 ];
 
+function mapDatabaseWork(work: GalleryWork): Work {
+  return {
+    id: work.id,
+    title: work.title,
+    creator: work.creator_name,
+    category: work.category,
+    year: String(work.year),
+    description: work.description,
+    label: work.title.toUpperCase().replace(/\s+/g, "\n"),
+    background: "linear-gradient(145deg, #19142c, #7358df, #f47968)",
+    ratio: 4 / 5,
+    imageUrl: work.image_url,
+    whatsapp: work.creator_whatsapp,
+    instagramUrl: work.creator_instagram_url,
+    portfolioUrl: work.creator_portfolio_url,
+    isFeatured: work.is_featured,
+  };
+}
+
 export default function Home() {
   const [introVisible, setIntroVisible] = useState(true);
-  const [activeCategory, setActiveCategory] = useState<Category>('Semua');
-  const [query, setQuery] = useState('');
+  const [activeCategory, setActiveCategory] = useState("Semua");
+  const [query, setQuery] = useState("");
   const [selectedWork, setSelectedWork] = useState<Work | null>(null);
+  const [works, setWorks] = useState<Work[]>(fallbackWorks);
+  const [categories, setCategories] = useState<string[]>([
+    "Semua",
+    "Poster",
+    "Branding",
+    "Illustration",
+    "Motion",
+    "UI/UX",
+  ]);
+  const [isGalleryLoading, setIsGalleryLoading] = useState(true);
 
   useEffect(() => {
-    const hasVisited = window.sessionStorage.getItem('nexora-gallery-intro');
-    if (hasVisited) {
-      setIntroVisible(false);
-    }
+    const hasVisited = window.sessionStorage.getItem("nexora-gallery-intro");
+    if (hasVisited) setIntroVisible(false);
   }, []);
 
+  useEffect(() => {
+    let active = true;
+
+    async function loadGallery() {
+      const [worksResult, categoriesResult] = await Promise.all([
+        supabase
+          .from("gallery_works")
+          .select("*")
+          .eq("is_published", true)
+          .order("is_featured", { ascending: false })
+          .order("created_at", { ascending: false }),
+        supabase
+          .from("gallery_categories")
+          .select("*")
+          .order("sort_order", { ascending: true }),
+      ]);
+
+      if (!active) return;
+
+      if (!worksResult.error && worksResult.data) {
+        const databaseWorks = (worksResult.data as GalleryWork[]).map(
+          mapDatabaseWork,
+        );
+        setWorks(databaseWorks);
+      }
+
+      if (!categoriesResult.error && categoriesResult.data) {
+        const databaseCategories = (
+          categoriesResult.data as GalleryCategory[]
+        ).map((category) => category.name);
+        setCategories(["Semua", ...databaseCategories]);
+      }
+
+      setIsGalleryLoading(false);
+    }
+
+    void loadGallery();
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (
+      activeCategory !== "Semua" &&
+      !categories.includes(activeCategory)
+    ) {
+      setActiveCategory("Semua");
+    }
+  }, [activeCategory, categories]);
+
   const enterGallery = () => {
-    window.sessionStorage.setItem('nexora-gallery-intro', 'seen');
+    window.sessionStorage.setItem("nexora-gallery-intro", "seen");
     setIntroVisible(false);
   };
 
@@ -136,7 +206,7 @@ export default function Home() {
 
     return works.filter((work) => {
       const matchesCategory =
-        activeCategory === 'Semua' || work.category === activeCategory;
+        activeCategory === "Semua" || work.category === activeCategory;
       const matchesQuery =
         !normalizedQuery ||
         `${work.title} ${work.creator} ${work.category}`
@@ -145,7 +215,13 @@ export default function Home() {
 
       return matchesCategory && matchesQuery;
     });
-  }, [activeCategory, query]);
+  }, [activeCategory, query, works]);
+
+  const featuredWork =
+    works.find((work) => work.isFeatured) ?? works[0] ?? fallbackWorks[0];
+  const selectedWhatsAppUrl = selectedWork
+    ? getWhatsAppUrl(selectedWork.whatsapp, selectedWork.title)
+    : null;
 
   return (
     <main className="nexora-shell">
@@ -205,26 +281,44 @@ export default function Home() {
             <em>menjadi nyata.</em>
           </h2>
           <p className="hero-description">
-            Temukan karya visual dari kreator Nexora. Jelajahi proses,
-            kenali pembuatnya, dan hubungi mereka untuk berkolaborasi.
+            Temukan karya visual dari kreator Nexora. Jelajahi proses, kenali
+            pembuatnya, dan hubungi mereka untuk berkolaborasi.
           </p>
           <a className="primary-button" href="#gallery">
             Jelajahi karya <span>↓</span>
           </a>
         </div>
 
-        <div className="hero-art" aria-label="Karya unggulan Afterglow">
-          <div className="hero-orbit orbit-one" />
-          <div className="hero-orbit orbit-two" />
-          <div className="hero-sun" />
-          <div className="hero-word">NEXORA</div>
+        <button
+          className={`hero-art ${featuredWork.imageUrl ? "has-featured-image" : ""}`}
+          aria-label={`Buka karya unggulan ${featuredWork.title}`}
+          type="button"
+          onClick={() => setSelectedWork(featuredWork)}
+        >
+          {featuredWork.imageUrl && (
+            <img
+              className="hero-featured-image"
+              src={featuredWork.imageUrl}
+              alt={featuredWork.title}
+            />
+          )}
+          {!featuredWork.imageUrl && (
+            <>
+              <div className="hero-orbit orbit-one" />
+              <div className="hero-orbit orbit-two" />
+              <div className="hero-sun" />
+              <div className="hero-word">NEXORA</div>
+            </>
+          )}
           <div className="hero-caption">
             <span>01 / FEATURED WORK</span>
-            <strong>Afterglow</strong>
-            <small>Poster · Nexora Studio</small>
+            <strong>{featuredWork.title}</strong>
+            <small>
+              {featuredWork.category} · {featuredWork.creator}
+            </small>
           </div>
           <span className="hero-number">01</span>
-        </div>
+        </button>
       </section>
 
       <section className="gallery-section" id="gallery">
@@ -243,7 +337,7 @@ export default function Home() {
           <div className="category-list" aria-label="Filter kategori">
             {categories.map((category) => (
               <button
-                className={activeCategory === category ? 'selected' : ''}
+                className={activeCategory === category ? "selected" : ""}
                 key={category}
                 type="button"
                 onClick={() => setActiveCategory(category)}
@@ -264,6 +358,10 @@ export default function Home() {
           </label>
         </div>
 
+        {isGalleryLoading && (
+          <p className="gallery-loading">Memuat koleksi terbaru...</p>
+        )}
+
         <div className="work-grid">
           {filteredWorks.map((work, index) => (
             <button
@@ -274,7 +372,7 @@ export default function Home() {
               onClick={() => setSelectedWork(work)}
             >
               <div
-                className={`work-art ${work.imageUrl ? 'has-image' : ''}`}
+                className={`work-art ${work.imageUrl ? "has-image" : ""}`}
                 style={
                   work.imageUrl
                     ? undefined
@@ -295,12 +393,14 @@ export default function Home() {
                 )}
                 {!work.imageUrl && (
                   <span className="art-label">
-                    {work.label.split('\n').map((line) => (
+                    {work.label.split("\n").map((line) => (
                       <span key={line}>{line}</span>
                     ))}
                   </span>
                 )}
-                <span className="art-index">0{work.id}</span>
+                <span className="art-index">
+                  {String(index + 1).padStart(2, "0")}
+                </span>
               </div>
               <span className="work-meta">
                 <span>
@@ -315,12 +415,12 @@ export default function Home() {
 
         {filteredWorks.length === 0 && (
           <div className="empty-state">
-            <p>Tidak ada karya yang cocok.</p>
+            <p>Belum ada karya yang cocok.</p>
             <button
               type="button"
               onClick={() => {
-                setQuery('');
-                setActiveCategory('Semua');
+                setQuery("");
+                setActiveCategory("Semua");
               }}
             >
               Reset pencarian
@@ -373,7 +473,7 @@ export default function Home() {
             onClick={(event) => event.stopPropagation()}
           >
             <div
-              className={`modal-art ${selectedWork.imageUrl ? 'has-image' : ''}`}
+              className={`modal-art ${selectedWork.imageUrl ? "has-image" : ""}`}
               style={
                 selectedWork.imageUrl
                   ? undefined
@@ -393,7 +493,7 @@ export default function Home() {
               )}
               {!selectedWork.imageUrl && (
                 <span className="art-label">
-                  {selectedWork.label.split('\n').map((line) => (
+                  {selectedWork.label.split("\n").map((line) => (
                     <span key={line}>{line}</span>
                   ))}
                 </span>
@@ -408,18 +508,53 @@ export default function Home() {
               >
                 ×
               </button>
-              <p className="eyebrow">{selectedWork.category} · {selectedWork.year}</p>
+              <p className="eyebrow">
+                {selectedWork.category} · {selectedWork.year}
+              </p>
               <h2>{selectedWork.title}</h2>
-              <p className="modal-creator">Dibuat oleh {selectedWork.creator}</p>
+              <p className="modal-creator">
+                Dibuat oleh {selectedWork.creator}
+              </p>
               <p className="modal-description">{selectedWork.description}</p>
-              <a
-                className="primary-button"
-                href="https://wa.me/"
-                rel="noreferrer"
-                target="_blank"
-              >
-                Hubungi kreator <span>↗</span>
-              </a>
+              <div className="creator-contact-list">
+                {selectedWhatsAppUrl && (
+                  <a
+                    className="primary-button"
+                    href={selectedWhatsAppUrl}
+                    rel="noreferrer"
+                    target="_blank"
+                  >
+                    WhatsApp kreator <span>↗</span>
+                  </a>
+                )}
+                {selectedWork.instagramUrl && (
+                  <a
+                    className="secondary-button"
+                    href={selectedWork.instagramUrl}
+                    rel="noreferrer"
+                    target="_blank"
+                  >
+                    Instagram ↗
+                  </a>
+                )}
+                {selectedWork.portfolioUrl && (
+                  <a
+                    className="secondary-button"
+                    href={selectedWork.portfolioUrl}
+                    rel="noreferrer"
+                    target="_blank"
+                  >
+                    Portfolio ↗
+                  </a>
+                )}
+              </div>
+              {!selectedWhatsAppUrl &&
+                !selectedWork.instagramUrl &&
+                !selectedWork.portfolioUrl && (
+                  <p className="contact-unavailable">
+                    Kontak kreator belum tersedia.
+                  </p>
+                )}
             </div>
           </div>
         </div>

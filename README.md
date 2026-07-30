@@ -1,36 +1,65 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Nexora Creative Gallery
 
-## Getting Started
+Website galeri karya visual Nexora menggunakan Next.js 16 dan Supabase.
 
-First, run the development server:
+## Fitur
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+- Galeri masonry responsif dengan filter kategori dan pencarian.
+- Detail karya beserta WhatsApp, Instagram, dan portfolio kreator.
+- Login admin/editor menggunakan Supabase Auth.
+- Dashboard upload, edit, draft/publikasi, unggulan, dan hapus karya.
+- Upload gambar ke Supabase Storage dengan batas 10 MB.
+- Row Level Security untuk tabel dan Storage.
+
+## 1. Konfigurasi environment
+
+Buat `.env.local`:
+
+```env
+NEXT_PUBLIC_SUPABASE_URL=https://PROJECT.supabase.co
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=KEY_KAMU
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+`NEXT_PUBLIC_SUPABASE_ANON_KEY` juga tetap didukung sebagai nama alternatif key.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 2. Siapkan database dan Storage
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Buka Supabase Dashboard → **SQL Editor**, lalu jalankan seluruh isi:
 
-## Learn More
+```text
+supabase/gallery_setup.sql
+```
 
-To learn more about Next.js, take a look at the following resources:
+Script tersebut membuat tabel `gallery_categories`, `gallery_creators`, `gallery_works`, bucket `gallery-works`, seed enam kategori, trigger, dan seluruh RLS policy.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Akun yang boleh mengelola karya harus memiliki baris pada tabel `profiles` dengan:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```text
+role = admin
+```
 
-## Deploy on Vercel
+atau:
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```text
+role = editor
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## 3. Build di Termux
+
+```bash
+cd ~/nexora-gallery
+npm install
+npm run build
+```
+
+Script build sudah menggunakan Webpack agar kompatibel dengan Android/Termux.
+
+## 4. Deploy
+
+```bash
+git add -A
+git commit -m "feat: add complete gallery upload management"
+git push origin main
+```
+
+Vercel akan melakukan deployment otomatis dari branch `main`.
