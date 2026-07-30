@@ -1,0 +1,78 @@
+.container {
+  -webkit-touch-callout: none;
+  display: block;
+  overflow: hidden;
+  position: relative;
+  user-select: none;
+}
+
+.fill {
+  inset: 0;
+  position: absolute;
+}
+
+.image {
+  -webkit-user-drag: none;
+  display: block;
+  height: auto;
+  pointer-events: none;
+  user-select: none;
+  width: 100%;
+}
+
+.fill .image {
+  height: 100%;
+  object-fit: cover;
+}
+
+.protectionLayer {
+  inset: 0;
+  pointer-events: none;
+  position: absolute;
+  z-index: 2;
+}
+
+.watermark {
+  color: rgba(255, 255, 255, 0.72);
+  font-family: var(--font-geist-mono), "DM Mono", monospace;
+  font-size: clamp(0.48rem, 1.3vw, 0.76rem);
+  font-weight: 700;
+  left: 50%;
+  letter-spacing: 0.18em;
+  line-height: 1.5;
+  max-width: 82%;
+  position: absolute;
+  text-align: center;
+  text-shadow: 0 1px 10px rgba(0, 0, 0, 0.75);
+  top: 50%;
+  transform: translate(-50%, -50%) rotate(-18deg);
+  white-space: nowrap;
+}
+
+.badge {
+  backdrop-filter: blur(8px);
+  background: rgba(18, 16, 22, 0.58);
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  border-radius: 999px;
+  bottom: 0.65rem;
+  color: rgba(255, 255, 255, 0.88);
+  font-family: var(--font-geist-mono), "DM Mono", monospace;
+  font-size: 0.43rem;
+  left: 0.65rem;
+  letter-spacing: 0.12em;
+  padding: 0.38rem 0.5rem;
+  position: absolute;
+}
+
+@media (max-width: 640px) {
+  .watermark {
+    font-size: 0.48rem;
+    letter-spacing: 0.12em;
+  }
+
+  .badge {
+    bottom: 0.5rem;
+    font-size: 0.38rem;
+    left: 0.5rem;
+  }
+}

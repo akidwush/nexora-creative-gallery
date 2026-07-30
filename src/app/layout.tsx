@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Nexora Creative Gallery",
   description:
-    "Etalase karya visual dan kreator di dalam ekosistem Nexora Community.",
+    "Galeri resmi karya pemenang event dan challenge Nexora.",
 };
 
 export default function RootLayout({

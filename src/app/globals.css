@@ -1015,3 +1015,16 @@ a {
   font-size: 0.7rem;
   margin-top: 1.2rem;
 }
+
+.submit-description {
+  color: rgba(23, 21, 27, 0.64);
+  font-size: clamp(0.82rem, 1.2vw, 0.95rem);
+  line-height: 1.7;
+  margin: -0.35rem auto 0;
+  max-width: 34rem;
+}
+
+[data-protected-artwork="true"] {
+  -webkit-touch-callout: none;
+  user-select: none;
+}

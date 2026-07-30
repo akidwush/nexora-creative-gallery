@@ -1,9 +1,12 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import ProtectedImage from "@/components/protected-image";
 import { getWhatsAppUrl } from "@/lib/gallery";
 import type { GalleryCategory, GalleryWork } from "@/lib/gallery";
 import { supabase } from "@/lib/supabase";
+import { getNexoraWhatsAppUrl } from "@/lib/site";
 
 type Work = {
   id: string;
@@ -124,6 +127,7 @@ function mapDatabaseWork(work: GalleryWork): Work {
 }
 
 export default function Home() {
+  const router = useRouter();
   const [introVisible, setIntroVisible] = useState(true);
   const [activeCategory, setActiveCategory] = useState("Semua");
   const [query, setQuery] = useState("");
@@ -201,6 +205,15 @@ export default function Home() {
     setIntroVisible(false);
   };
 
+  const openWork = (work: Work) => {
+    if (work.id.startsWith("sample-")) {
+      setSelectedWork(work);
+      return;
+    }
+
+    router.push(`/karya/${encodeURIComponent(work.id)}`);
+  };
+
   const filteredWorks = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
 
@@ -222,6 +235,7 @@ export default function Home() {
   const selectedWhatsAppUrl = selectedWork
     ? getWhatsAppUrl(selectedWork.whatsapp, selectedWork.title)
     : null;
+  const nexoraWhatsAppUrl = getNexoraWhatsAppUrl();
 
   return (
     <main className="nexora-shell">
@@ -232,19 +246,19 @@ export default function Home() {
           <div className="intro-mark" aria-hidden="true">
             N
           </div>
-          <p className="eyebrow intro-eyebrow">NEXORA CREATIVE GALLERY</p>
+          <p className="eyebrow intro-eyebrow">NEXORA WINNER GALLERY</p>
           <h1>
-            Create.
+            Terpilih.
             <br />
-            Inspire.
+            Menang.
             <br />
-            Connect.
+            Diabadikan.
           </h1>
           <p className="intro-copy">
-            Sebuah ruang untuk karya, cerita, dan orang-orang kreatif.
+            Galeri resmi karya pemenang event dan challenge Nexora.
           </p>
           <button className="intro-button" type="button" onClick={enterGallery}>
-            Masuk ke galeri <span>↗</span>
+            Lihat karya pemenang <span>↗</span>
           </button>
           <button className="skip-button" type="button" onClick={enterGallery}>
             Lewati intro
@@ -268,24 +282,25 @@ export default function Home() {
           <a href="#about">Tentang</a>
         </nav>
         <a className="submit-link" href="#submit">
-          Kirim karya <span>↗</span>
+          Konfirmasi karya <span>↗</span>
         </a>
       </header>
 
       <section className="hero-section" id="top">
         <div className="hero-copy">
-          <p className="eyebrow">RUANG KARYA DIGITAL</p>
+          <p className="eyebrow">GALERI PEMENANG NEXORA</p>
           <h2>
-            Ide yang
+            Karya terbaik.
             <br />
-            <em>menjadi nyata.</em>
+            <em>Diabadikan.</em>
           </h2>
           <p className="hero-description">
-            Temukan karya visual dari kreator Nexora. Jelajahi proses, kenali
-            pembuatnya, dan hubungi mereka untuk berkolaborasi.
+            Galeri resmi untuk menampilkan dan mengarsipkan karya para
+            pemenang event serta challenge Nexora, lengkap dengan identitas
+            kreatornya.
           </p>
           <a className="primary-button" href="#gallery">
-            Jelajahi karya <span>↓</span>
+            Lihat koleksi pemenang <span>↓</span>
           </a>
         </div>
 
@@ -293,11 +308,12 @@ export default function Home() {
           className={`hero-art ${featuredWork.imageUrl ? "has-featured-image" : ""}`}
           aria-label={`Buka karya unggulan ${featuredWork.title}`}
           type="button"
-          onClick={() => setSelectedWork(featuredWork)}
+          onClick={() => openWork(featuredWork)}
         >
           {featuredWork.imageUrl && (
-            <img
-              className="hero-featured-image"
+            <ProtectedImage
+              fill
+              imageClassName="hero-featured-image"
               src={featuredWork.imageUrl}
               alt={featuredWork.title}
             />
@@ -311,7 +327,7 @@ export default function Home() {
             </>
           )}
           <div className="hero-caption">
-            <span>01 / FEATURED WORK</span>
+            <span>01 / FEATURED WINNER</span>
             <strong>{featuredWork.title}</strong>
             <small>
               {featuredWork.category} · {featuredWork.creator}
@@ -324,12 +340,12 @@ export default function Home() {
       <section className="gallery-section" id="gallery">
         <div className="section-heading">
           <div>
-            <p className="eyebrow">CURATED COLLECTION</p>
-            <h2>Karya pilihan</h2>
+            <p className="eyebrow">WINNER COLLECTION</p>
+            <h2>Karya pemenang</h2>
           </div>
           <p className="section-note">
-            Koleksi visual yang dibuat oleh kreator
-            <br className="desktop-break" /> di dalam ekosistem Nexora.
+            Koleksi resmi karya terpilih dari pemenang
+            <br className="desktop-break" /> event dan challenge Nexora.
           </p>
         </div>
 
@@ -369,7 +385,7 @@ export default function Home() {
               key={work.id}
               type="button"
               style={{ animationDelay: `${index * 70}ms` }}
-              onClick={() => setSelectedWork(work)}
+              onClick={() => openWork(work)}
             >
               <div
                 className={`work-art ${work.imageUrl ? "has-image" : ""}`}
@@ -384,11 +400,12 @@ export default function Home() {
               >
                 <span className="art-category">{work.category}</span>
                 {work.imageUrl && (
-                  <img
-                    className="work-image"
+                  <ProtectedImage
+                    imageClassName="work-image"
                     src={work.imageUrl}
                     alt={work.title}
                     loading="lazy"
+                    decoding="async"
                   />
                 )}
                 {!work.imageUrl && (
@@ -431,32 +448,36 @@ export default function Home() {
 
       <section className="about-section" id="about">
         <div>
-          <p className="eyebrow">WHY NEXORA</p>
-          <h2>Karya punya cerita.</h2>
+          <p className="eyebrow">TENTANG GALERI</p>
+          <h2>Setiap kemenangan layak diingat.</h2>
         </div>
         <p>
-          Nexora Creative Gallery dibuat untuk mempertemukan karya visual
-          dengan orang yang membuatnya. Setiap karya memiliki proses, sudut
-          pandang, dan kontak yang bisa kamu kenali lebih dekat.
+          Nexora Creative Gallery adalah arsip resmi karya pemenang.
+          Galeri ini hanya menampilkan karya yang telah terpilih dalam event
+          atau challenge Nexora agar pencapaian kreator tetap tercatat dan
+          mudah dikenali.
         </p>
       </section>
 
       <section className="submit-section" id="submit">
-        <p className="eyebrow">PUNYA KARYA?</p>
-        <h2>Tunjukkan ke dunia.</h2>
+        <p className="eyebrow">PEMENANG NEXORA?</p>
+        <h2>Konfirmasi karyamu.</h2>
+        <p className="submit-description">
+          Hubungi admin Nexora untuk mengirim file final dan data kreator.
+        </p>
         <a
           className="primary-button"
-          href="https://wa.me/"
+          href={nexoraWhatsAppUrl}
           rel="noreferrer"
           target="_blank"
         >
-          Hubungi Nexora <span>↗</span>
+          Hubungi Nexora via WhatsApp <span>↗</span>
         </a>
       </section>
 
       <footer className="site-footer">
         <span>© 2026 NEXORA CREATIVE GALLERY</span>
-        <span>Learn · Create · Connect · Grow</span>
+        <span>Terpilih · Menang · Diabadikan</span>
       </footer>
 
       {selectedWork && (
@@ -485,8 +506,8 @@ export default function Home() {
             >
               <span className="art-category">{selectedWork.category}</span>
               {selectedWork.imageUrl && (
-                <img
-                  className="work-image"
+                <ProtectedImage
+                  imageClassName="work-image"
                   src={selectedWork.imageUrl}
                   alt={selectedWork.title}
                 />
@@ -513,7 +534,7 @@ export default function Home() {
               </p>
               <h2>{selectedWork.title}</h2>
               <p className="modal-creator">
-                Dibuat oleh {selectedWork.creator}
+                Karya pemenang oleh {selectedWork.creator}
               </p>
               <p className="modal-description">{selectedWork.description}</p>
               <div className="creator-contact-list">
