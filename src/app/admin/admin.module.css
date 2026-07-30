@@ -1,0 +1,258 @@
+.page {
+  background: #f5f3ef;
+  color: #17151b;
+  min-height: 100svh;
+}
+
+.header {
+  align-items: center;
+  background: rgba(245, 243, 239, 0.92);
+  border-bottom: 1px solid rgba(23, 21, 27, 0.12);
+  display: flex;
+  justify-content: space-between;
+  padding: 1rem clamp(1rem, 4vw, 4rem);
+  position: sticky;
+  top: 0;
+  z-index: 5;
+}
+
+.brand {
+  align-items: center;
+  color: inherit;
+  display: flex;
+  gap: 0.65rem;
+  text-decoration: none;
+}
+
+.brand > span {
+  align-items: center;
+  background: #17151b;
+  border-radius: 50%;
+  color: #d8ff65;
+  display: flex;
+  font-weight: 900;
+  height: 2.2rem;
+  justify-content: center;
+  transform: rotate(-8deg);
+  width: 2.2rem;
+}
+
+.brand strong,
+.brand small,
+.account strong,
+.account small {
+  display: block;
+}
+
+.brand strong {
+  font-size: 0.78rem;
+  letter-spacing: 0.1em;
+}
+
+.brand small,
+.account small {
+  color: #77717a;
+  font-family: monospace;
+  font-size: 0.52rem;
+  letter-spacing: 0.1em;
+  margin-top: 0.14rem;
+  text-transform: uppercase;
+}
+
+.account {
+  align-items: center;
+  display: flex;
+  gap: 1rem;
+}
+
+.account > span {
+  text-align: right;
+}
+
+.account strong {
+  font-size: 0.72rem;
+}
+
+.account button {
+  background: transparent;
+  border: 1px solid rgba(23, 21, 27, 0.16);
+  border-radius: 999px;
+  color: #17151b;
+  cursor: pointer;
+  font-size: 0.68rem;
+  padding: 0.65rem 0.9rem;
+}
+
+.content {
+  margin: 0 auto;
+  max-width: 1180px;
+  padding: clamp(3rem, 8vw, 7rem) clamp(1rem, 4vw, 3rem);
+}
+
+.welcome > p,
+.nextPanel > div > p {
+  color: #77717a;
+  font-family: monospace;
+  font-size: 0.6rem;
+  letter-spacing: 0.16em;
+  margin: 0;
+}
+
+.welcome h1 {
+  font-size: clamp(3.2rem, 9vw, 7.5rem);
+  font-weight: 500;
+  letter-spacing: -0.08em;
+  line-height: 0.9;
+  margin: 1rem 0;
+}
+
+.welcome > span,
+.nextPanel > div > span {
+  color: #77717a;
+  display: block;
+  font-size: 0.82rem;
+  line-height: 1.7;
+  max-width: 32rem;
+}
+
+.error {
+  background: #fff0f0;
+  border: 1px solid #f0c7c7;
+  border-radius: 0.8rem;
+  color: #9a3232;
+  font-size: 0.75rem;
+  margin-top: 2rem;
+  padding: 0.8rem 1rem;
+}
+
+.statsGrid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-top: 4rem;
+}
+
+.statsGrid article {
+  background: #ffffff;
+  border: 1px solid rgba(23, 21, 27, 0.1);
+  border-radius: 1.2rem;
+  min-height: 190px;
+  padding: 1.2rem;
+  position: relative;
+}
+
+.statsGrid article > span {
+  color: #77717a;
+  font-family: monospace;
+  font-size: 0.6rem;
+  position: absolute;
+  right: 1.2rem;
+  top: 1.2rem;
+}
+
+.statsGrid article strong {
+  display: block;
+  font-size: clamp(3rem, 8vw, 5.7rem);
+  font-weight: 500;
+  letter-spacing: -0.07em;
+  margin-top: 1.8rem;
+}
+
+.statsGrid article p {
+  color: #77717a;
+  font-size: 0.72rem;
+  margin: 0.5rem 0 0;
+}
+
+.nextPanel {
+  align-items: center;
+  background: #17151b;
+  border-radius: 1.3rem;
+  color: #ffffff;
+  display: flex;
+  gap: 2rem;
+  justify-content: space-between;
+  margin-top: 1rem;
+  padding: clamp(1.5rem, 4vw, 3rem);
+}
+
+.nextPanel h2 {
+  font-size: clamp(2rem, 5vw, 4rem);
+  font-weight: 500;
+  letter-spacing: -0.07em;
+  line-height: 0.95;
+  margin: 0.8rem 0 1rem;
+}
+
+.nextPanel > div > p {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.nextPanel > div > span {
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.nextPanel button {
+  background: #d8ff65;
+  border: 0;
+  border-radius: 999px;
+  color: #17151b;
+  font-size: 0.7rem;
+  font-weight: 800;
+  min-width: max-content;
+  padding: 0.85rem 1rem;
+}
+
+.loadingPage {
+  align-items: center;
+  background: #121016;
+  color: rgba(255, 255, 255, 0.62);
+  display: flex;
+  flex-direction: column;
+  font-size: 0.72rem;
+  gap: 1rem;
+  justify-content: center;
+  min-height: 100svh;
+}
+
+.loadingMark {
+  align-items: center;
+  background: #d8ff65;
+  border-radius: 50%;
+  color: #17151b;
+  display: flex;
+  font-size: 1.6rem;
+  font-weight: 900;
+  height: 4rem;
+  justify-content: center;
+  transform: rotate(-8deg);
+  width: 4rem;
+}
+
+@media (max-width: 700px) {
+  .header {
+    padding: 0.85rem 1rem;
+  }
+
+  .account > span {
+    display: none;
+  }
+
+  .content {
+    padding-top: 3.5rem;
+  }
+
+  .statsGrid {
+    grid-template-columns: 1fr;
+    margin-top: 2.5rem;
+  }
+
+  .statsGrid article {
+    min-height: 150px;
+  }
+
+  .nextPanel {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}

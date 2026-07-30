@@ -1,0 +1,239 @@
+.page {
+  align-items: center;
+  background: #121016;
+  color: #ffffff;
+  display: flex;
+  font-family: Arial, sans-serif;
+  justify-content: center;
+  min-height: 100svh;
+  overflow: hidden;
+  padding: 4rem 1.2rem;
+  position: relative;
+}
+
+.page::before {
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.035) 1px, transparent 1px);
+  background-size: 44px 44px;
+  content: "";
+  inset: 0;
+  mask-image: linear-gradient(to bottom, black, transparent 85%);
+  position: absolute;
+}
+
+.glowOne,
+.glowTwo {
+  border: 1px solid rgba(113, 86, 223, 0.35);
+  border-radius: 50%;
+  height: min(75vw, 650px);
+  pointer-events: none;
+  position: absolute;
+  width: min(75vw, 650px);
+}
+
+.glowOne {
+  left: -28%;
+  top: -38%;
+}
+
+.glowTwo {
+  bottom: -45%;
+  right: -30%;
+  transform: scale(1.2);
+}
+
+.backLink {
+  color: rgba(255, 255, 255, 0.62);
+  font-size: 0.76rem;
+  left: clamp(1.2rem, 4vw, 4rem);
+  position: absolute;
+  text-decoration: none;
+  top: clamp(1.2rem, 4vw, 3rem);
+  transition: color 180ms ease;
+  z-index: 2;
+}
+
+.backLink:hover {
+  color: #d8ff65;
+}
+
+.card {
+  background: rgba(26, 23, 32, 0.88);
+  border: 1px solid rgba(255, 255, 255, 0.11);
+  border-radius: 1.5rem;
+  box-shadow: 0 2rem 6rem rgba(0, 0, 0, 0.28);
+  max-width: 450px;
+  padding: clamp(1.5rem, 6vw, 3.2rem);
+  position: relative;
+  width: 100%;
+  z-index: 1;
+}
+
+.brandMark {
+  align-items: center;
+  background: #d8ff65;
+  border-radius: 50%;
+  color: #17151b;
+  display: flex;
+  font-size: 1.15rem;
+  font-weight: 900;
+  height: 2.8rem;
+  justify-content: center;
+  margin-bottom: 1.7rem;
+  transform: rotate(-8deg);
+  width: 2.8rem;
+}
+
+.eyebrow {
+  color: rgba(255, 255, 255, 0.48);
+  font-family: monospace;
+  font-size: 0.62rem;
+  letter-spacing: 0.15em;
+  margin: 0;
+}
+
+.card h1 {
+  font-size: clamp(2.5rem, 9vw, 4.3rem);
+  font-weight: 500;
+  letter-spacing: -0.075em;
+  line-height: 0.92;
+  margin: 0.9rem 0 1.1rem;
+}
+
+.description {
+  color: rgba(255, 255, 255, 0.58);
+  font-size: 0.8rem;
+  line-height: 1.7;
+  margin: 0;
+  max-width: 22rem;
+}
+
+.form {
+  display: grid;
+  gap: 1rem;
+  margin-top: 2rem;
+}
+
+.form label {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.form label > span {
+  color: rgba(255, 255, 255, 0.68);
+  font-size: 0.68rem;
+  font-weight: 700;
+}
+
+.form input {
+  background: rgba(255, 255, 255, 0.055);
+  border: 1px solid rgba(255, 255, 255, 0.11);
+  border-radius: 0.8rem;
+  color: white;
+  font-size: 0.85rem;
+  outline: none;
+  padding: 0.95rem 1rem;
+  transition:
+    border-color 180ms ease,
+    background 180ms ease;
+  width: 100%;
+}
+
+.form input:focus {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: #d8ff65;
+}
+
+.form input::placeholder {
+  color: rgba(255, 255, 255, 0.28);
+}
+
+.form button {
+  align-items: center;
+  background: #d8ff65;
+  border: 0;
+  border-radius: 999px;
+  color: #17151b;
+  cursor: pointer;
+  display: flex;
+  font-size: 0.76rem;
+  font-weight: 800;
+  justify-content: center;
+  margin-top: 0.25rem;
+  min-height: 3rem;
+  padding: 0.85rem 1.2rem;
+}
+
+.form button:disabled {
+  cursor: wait;
+  opacity: 0.66;
+}
+
+.form button span {
+  margin-left: 0.6rem;
+}
+
+.error {
+  background: rgba(255, 100, 100, 0.1);
+  border: 1px solid rgba(255, 100, 100, 0.25);
+  border-radius: 0.7rem;
+  color: #ffb6b6;
+  font-size: 0.72rem;
+  line-height: 1.5;
+  margin: 0;
+  padding: 0.75rem 0.8rem;
+}
+
+.success {
+  background: rgba(216, 255, 101, 0.1);
+  border: 1px solid rgba(216, 255, 101, 0.32);
+  border-radius: 0.7rem;
+  color: #e4ffa1;
+  font-size: 0.72rem;
+  line-height: 1.5;
+  margin: 0;
+  padding: 0.75rem 0.8rem;
+}
+
+.fallbackLink,
+.sessionNote a {
+  color: #d8ff65;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.fallbackLink {
+  display: block;
+  padding: 0.15rem 0;
+  text-align: center;
+}
+
+.sessionNote {
+  color: rgba(255, 255, 255, 0.48);
+  font-size: 0.68rem;
+  line-height: 1.5;
+  margin: 1.15rem 0 0;
+  text-align: center;
+}
+
+.securityNote {
+  color: rgba(255, 255, 255, 0.34);
+  font-family: monospace;
+  font-size: 0.58rem;
+  line-height: 1.5;
+  margin: 1.3rem 0 0;
+  text-align: center;
+}
+
+@media (max-width: 520px) {
+  .page {
+    align-items: flex-start;
+    padding-top: 5.5rem;
+  }
+
+  .card {
+    border-radius: 1.2rem;
+  }
+}
