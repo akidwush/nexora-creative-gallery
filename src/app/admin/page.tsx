@@ -282,6 +282,19 @@ export default function AdminDashboardPage() {
     setForm((current) => ({ ...current, [key]: value }));
   }
 
+  function getOptimizationSummary(image: PreparedGalleryImage | null) {
+    if (!image) return "";
+
+    const dimensions = `${image.originalWidth} × ${image.originalHeight} px`;
+    const sizeResult = image.wasOptimized
+      ? `${formatFileSize(image.originalBytes)} → ${formatFileSize(
+          image.optimizedBytes,
+        )}`
+      : `${formatFileSize(image.optimizedBytes)} · tidak perlu dikompres`;
+
+    return `${dimensions} · ${sizeResult}`;
+  }
+
   function resetForm() {
     setForm({
       ...EMPTY_WORK_FORM,
@@ -397,6 +410,8 @@ export default function AdminDashboardPage() {
       return;
     }
 
+    const optimizationSummary = getOptimizationSummary(preparedImage);
+
     setIsSubmitting(true);
     let uploadedPath = "";
     let uploadCommitted = false;
@@ -488,10 +503,14 @@ export default function AdminDashboardPage() {
 
       await loadGalleryData();
       resetForm();
+      const savedMessage = existingWork
+        ? "Karya berhasil diperbarui."
+        : "Karya berhasil diunggah dan langsung masuk ke galeri.";
+
       setSuccessMessage(
-        existingWork
-          ? "Karya berhasil diperbarui."
-          : "Karya berhasil diunggah dan langsung masuk ke galeri.",
+        optimizationSummary
+          ? `${savedMessage} Hasil optimasi: ${optimizationSummary}.`
+          : savedMessage,
       );
     } catch (error) {
       if (uploadedPath && !uploadCommitted) {
@@ -709,7 +728,7 @@ export default function AdminDashboardPage() {
               )}
               {preparedImage && (
                 <p className={styles.imageStatus}>
-                  {preparedImage.width} × {preparedImage.height} px ·{" "}
+                  {preparedImage.originalWidth} × {preparedImage.originalHeight} px ·{" "}
                   {preparedImage.wasOptimized
                     ? `${formatFileSize(preparedImage.originalBytes)} → ${formatFileSize(
                         preparedImage.optimizedBytes,

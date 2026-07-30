@@ -12,8 +12,10 @@ const MIN_DIMENSION = 320;
 
 export type PreparedGalleryImage = {
   file: File;
-  width: number;
-  height: number;
+  originalWidth: number;
+  originalHeight: number;
+  outputWidth: number;
+  outputHeight: number;
   originalBytes: number;
   optimizedBytes: number;
   wasOptimized: boolean;
@@ -89,8 +91,10 @@ export async function prepareGalleryImage(
   if (sourceFile.type === "image/gif") {
     return {
       file: sourceFile,
-      width,
-      height,
+      originalWidth: width,
+      originalHeight: height,
+      outputWidth: width,
+      outputHeight: height,
       originalBytes: sourceFile.size,
       optimizedBytes: sourceFile.size,
       wasOptimized: false,
@@ -142,8 +146,10 @@ export async function prepareGalleryImage(
 
   return {
     file: shouldUseOriginal ? sourceFile : optimizedFile,
-    width: shouldUseOriginal ? width : outputWidth,
-    height: shouldUseOriginal ? height : outputHeight,
+    originalWidth: width,
+    originalHeight: height,
+    outputWidth: shouldUseOriginal ? width : outputWidth,
+    outputHeight: shouldUseOriginal ? height : outputHeight,
     originalBytes: sourceFile.size,
     optimizedBytes: shouldUseOriginal ? sourceFile.size : optimizedFile.size,
     wasOptimized: !shouldUseOriginal,
