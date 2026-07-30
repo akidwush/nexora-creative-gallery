@@ -1,0 +1,8 @@
+NEXORA CREATIVE GALLERY — V5.4.2 CARD FRAMING
+
+Perubahan:
+- Semua container gambar kartu galeri memakai radius 12px.
+- Ditambahkan shadow sangat halus dan ring 1px tanpa mengubah layout.
+- Hover tetap memiliki lift/shadow premium sambil mempertahankan ring tipis.
+- Berlaku konsisten untuk gambar biasa maupun karya yang dilindungi.
+- Tidak memerlukan SQL atau dependency baru.

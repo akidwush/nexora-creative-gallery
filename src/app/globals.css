@@ -420,7 +420,11 @@ a {
 }
 
 .work-art {
-  border-radius: 1rem;
+  background: var(--paper);
+  border-radius: 0.75rem;
+  box-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.06),
+    0 0 0 1px rgba(0, 0, 0, 0.05);
   min-height: 0;
   overflow: hidden;
   position: relative;
@@ -440,7 +444,9 @@ a {
 }
 
 .work-card:hover .work-art {
-  box-shadow: 0 1.3rem 2.5rem rgba(30, 20, 40, 0.18);
+  box-shadow:
+    0 1.3rem 2.5rem rgba(30, 20, 40, 0.18),
+    0 0 0 1px rgba(0, 0, 0, 0.06);
   transform: translateY(-5px) rotate(-0.4deg);
 }
 
@@ -1789,7 +1795,9 @@ section[id] {
 
   .work-card:hover .work-art,
   .work-card:focus-visible .work-art {
-    box-shadow: 0 1.35rem 2.8rem rgba(30, 20, 40, 0.18);
+    box-shadow:
+      0 1.35rem 2.8rem rgba(30, 20, 40, 0.18),
+      0 0 0 1px rgba(0, 0, 0, 0.06);
     transform: translate3d(0, -6px, 0) scale(1.012);
   }
 
