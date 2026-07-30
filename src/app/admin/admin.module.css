@@ -626,3 +626,171 @@
     justify-content: flex-end;
   }
 }
+
+.imageStatus {
+  color: #77717a;
+  font-size: 0.65rem;
+  line-height: 1.5;
+  margin: 0.55rem 0 0;
+  text-align: center;
+}
+
+.collectionTools {
+  border-bottom: 1px solid rgba(23, 21, 27, 0.1);
+  display: grid;
+  gap: 0.65rem;
+  margin-top: 1.25rem;
+  padding-bottom: 1rem;
+}
+
+.searchField input,
+.filterGrid select {
+  background: #f7f5f1;
+  border: 1px solid rgba(23, 21, 27, 0.12);
+  border-radius: 0.72rem;
+  color: #17151b;
+  font: inherit;
+  font-size: 0.7rem;
+  min-height: 2.7rem;
+  outline: none;
+  padding: 0.7rem 0.8rem;
+  width: 100%;
+}
+
+.searchField input:focus,
+.filterGrid select:focus {
+  background: #ffffff;
+  border-color: #7358df;
+}
+
+.filterGrid {
+  display: grid;
+  gap: 0.55rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.resultCount {
+  color: #77717a;
+  font-family: monospace;
+  font-size: 0.58rem;
+}
+
+.pagination {
+  align-items: center;
+  display: flex;
+  gap: 0.7rem;
+  justify-content: space-between;
+  margin-top: 1rem;
+}
+
+.pagination button {
+  background: transparent;
+  border: 1px solid rgba(23, 21, 27, 0.16);
+  border-radius: 999px;
+  color: #17151b;
+  cursor: pointer;
+  font-size: 0.62rem;
+  padding: 0.58rem 0.78rem;
+}
+
+.pagination button:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+.pagination span {
+  color: #77717a;
+  font-family: monospace;
+  font-size: 0.62rem;
+}
+
+.modalBackdrop {
+  align-items: center;
+  background: rgba(18, 16, 22, 0.72);
+  display: flex;
+  inset: 0;
+  justify-content: center;
+  padding: 1rem;
+  position: fixed;
+  z-index: 100;
+}
+
+.confirmModal {
+  background: #ffffff;
+  border-radius: 1.15rem;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.25);
+  max-width: 410px;
+  padding: 1.35rem;
+  width: 100%;
+}
+
+.confirmModal > p {
+  color: #a23535;
+  font-family: monospace;
+  font-size: 0.6rem;
+  letter-spacing: 0.14em;
+  margin: 0;
+}
+
+.confirmModal h2 {
+  font-size: 1.65rem;
+  letter-spacing: -0.045em;
+  margin: 0.65rem 0 0;
+}
+
+.confirmModal > span {
+  color: #77717a;
+  display: block;
+  font-size: 0.72rem;
+  line-height: 1.65;
+  margin-top: 0.7rem;
+}
+
+.confirmModal > div {
+  display: grid;
+  gap: 0.6rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-top: 1.15rem;
+}
+
+.confirmModal button {
+  background: #f4f1ed;
+  border: 0;
+  border-radius: 999px;
+  color: #17151b;
+  cursor: pointer;
+  font-size: 0.7rem;
+  font-weight: 700;
+  min-height: 2.8rem;
+  padding: 0.7rem 0.9rem;
+}
+
+.confirmModal button:disabled {
+  cursor: wait;
+  opacity: 0.55;
+}
+
+.confirmModal .confirmDeleteButton {
+  background: #17151b;
+  color: #ffffff;
+}
+
+.srOnly {
+  clip: rect(0, 0, 0, 0);
+  clip-path: inset(50%);
+  height: 1px;
+  overflow: hidden;
+  position: absolute;
+  white-space: nowrap;
+  width: 1px;
+}
+
+@media (max-width: 520px) {
+  .filterGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .confirmModal > div {
+    grid-template-columns: 1fr;
+  }
+}

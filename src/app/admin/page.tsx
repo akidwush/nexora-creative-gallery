@@ -25,6 +25,11 @@ import type {
   GalleryWork,
   GalleryWorkForm,
 } from "@/lib/gallery";
+import {
+  formatFileSize,
+  prepareGalleryImage,
+} from "@/lib/image";
+import type { PreparedGalleryImage } from "@/lib/image";
 import styles from "./admin.module.css";
 
 type StaffProfile = {
@@ -38,11 +43,15 @@ type DashboardStats = {
   categories: number;
 };
 
+type WorkStatusFilter = "all" | "published" | "draft" | "featured";
+
 const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
+const PAGE_SIZE = 6;
 
 export default function AdminDashboardPage() {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const filePreparationIdRef = useRef(0);
   const [profile, setProfile] = useState<StaffProfile | null>(null);
   const [sessionUserId, setSessionUserId] = useState("");
   const [stats, setStats] = useState<DashboardStats>({
@@ -55,11 +64,20 @@ export default function AdminDashboardPage() {
   const [works, setWorks] = useState<GalleryWork[]>([]);
   const [form, setForm] = useState<GalleryWorkForm>(EMPTY_WORK_FORM);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [preparedImage, setPreparedImage] =
+    useState<PreparedGalleryImage | null>(null);
   const [previewUrl, setPreviewUrl] = useState("");
   const [editingWorkId, setEditingWorkId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isPreparingImage, setIsPreparingImage] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<GalleryWork | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState("all");
+  const [statusFilter, setStatusFilter] =
+    useState<WorkStatusFilter>("all");
+  const [currentPage, setCurrentPage] = useState(1);
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
 
@@ -67,6 +85,34 @@ export default function AdminDashboardPage() {
     () => creators.map((creator) => creator.name),
     [creators],
   );
+
+  const filteredWorks = useMemo(() => {
+    const normalizedQuery = searchQuery.trim().toLowerCase();
+
+    return works.filter((work) => {
+      const matchesQuery =
+        !normalizedQuery ||
+        work.title.toLowerCase().includes(normalizedQuery) ||
+        work.creator_name.toLowerCase().includes(normalizedQuery);
+
+      const matchesCategory =
+        categoryFilter === "all" || work.category === categoryFilter;
+
+      const matchesStatus =
+        statusFilter === "all" ||
+        (statusFilter === "published" && work.is_published) ||
+        (statusFilter === "draft" && !work.is_published) ||
+        (statusFilter === "featured" && work.is_featured);
+
+      return matchesQuery && matchesCategory && matchesStatus;
+    });
+  }, [categoryFilter, searchQuery, statusFilter, works]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredWorks.length / PAGE_SIZE));
+  const paginatedWorks = useMemo(() => {
+    const startIndex = (currentPage - 1) * PAGE_SIZE;
+    return filteredWorks.slice(startIndex, startIndex + PAGE_SIZE);
+  }, [currentPage, filteredWorks]);
 
   const loadGalleryData = useCallback(async () => {
     const [worksResult, creatorsResult, categoriesResult] = await Promise.all([
@@ -145,26 +191,17 @@ export default function AdminDashboardPage() {
 
         if (!active) return;
 
-        if (profileError || !profileData) {
-          setProfile({
-            display_name: session.user.email ?? "Nexora Admin",
-            role: "admin",
-          });
-          setErrorMessage(
-            profileError
-              ? `Sesi aktif, tetapi profil admin belum terbaca: ${profileError.message}`
-              : "Sesi aktif, tetapi baris profil admin belum ditemukan. Upload akan ditolak sampai profil dibuat.",
-          );
-        } else if (
-          profileData.role !== "admin" &&
-          profileData.role !== "editor"
+        if (
+          profileError ||
+          !profileData ||
+          (profileData.role !== "admin" && profileData.role !== "editor")
         ) {
           await supabase.auth.signOut();
           router.replace("/admin/login");
           return;
-        } else {
-          setProfile(profileData as StaffProfile);
         }
+
+        setProfile(profileData as StaffProfile);
 
         await loadGalleryData();
       } catch (error) {
@@ -185,6 +222,46 @@ export default function AdminDashboardPage() {
       active = false;
     };
   }, [loadGalleryData, router]);
+
+  useEffect(() => {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event) => {
+      if (event === "SIGNED_OUT") {
+        router.replace("/admin/login");
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [router]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [categoryFilter, searchQuery, statusFilter]);
+
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [currentPage, totalPages]);
+
+  useEffect(() => {
+    if (!deleteTarget) return;
+
+    function handleEscape(event: KeyboardEvent) {
+      if (event.key === "Escape" && !deletingId) {
+        setDeleteTarget(null);
+      }
+    }
+
+    document.addEventListener("keydown", handleEscape);
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.removeEventListener("keydown", handleEscape);
+      document.body.style.overflow = "";
+    };
+  }, [deleteTarget, deletingId]);
 
   useEffect(() => {
     if (!selectedFile) {
@@ -210,9 +287,49 @@ export default function AdminDashboardPage() {
       ...EMPTY_WORK_FORM,
       category: categories[0]?.name ?? EMPTY_WORK_FORM.category,
     });
+    filePreparationIdRef.current += 1;
     setSelectedFile(null);
+    setPreparedImage(null);
     setEditingWorkId(null);
     if (fileInputRef.current) fileInputRef.current.value = "";
+  }
+
+  async function handleFileSelection(file: File | null) {
+    const preparationId = filePreparationIdRef.current + 1;
+    filePreparationIdRef.current = preparationId;
+
+    setErrorMessage("");
+    setSuccessMessage("");
+    setSelectedFile(null);
+    setPreparedImage(null);
+
+    if (!file) {
+      setIsPreparingImage(false);
+      return;
+    }
+
+    setIsPreparingImage(true);
+
+    try {
+      const prepared = await prepareGalleryImage(file);
+      if (filePreparationIdRef.current !== preparationId) return;
+
+      setSelectedFile(prepared.file);
+      setPreparedImage(prepared);
+    } catch (error) {
+      if (filePreparationIdRef.current !== preparationId) return;
+
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      setErrorMessage(
+        error instanceof Error
+          ? error.message
+          : "Gambar gagal diproses. Pilih file lain.",
+      );
+    } finally {
+      if (filePreparationIdRef.current === preparationId) {
+        setIsPreparingImage(false);
+      }
+    }
   }
 
   function fillCreatorDetails(name: string) {
@@ -394,6 +511,7 @@ export default function AdminDashboardPage() {
   function handleEdit(work: GalleryWork) {
     setEditingWorkId(work.id);
     setSelectedFile(null);
+    setPreparedImage(null);
     if (fileInputRef.current) fileInputRef.current.value = "";
     setForm({
       title: work.title,
@@ -415,15 +533,17 @@ export default function AdminDashboardPage() {
     });
   }
 
-  async function handleDelete(work: GalleryWork) {
-    const confirmed = window.confirm(
-      `Hapus karya \"${work.title}\"? Tindakan ini tidak dapat dibatalkan.`,
-    );
-    if (!confirmed) return;
-
-    setDeletingId(work.id);
+  function requestDelete(work: GalleryWork) {
+    setDeleteTarget(work);
     setErrorMessage("");
     setSuccessMessage("");
+  }
+
+  async function confirmDelete() {
+    if (!deleteTarget) return;
+
+    const work = deleteTarget;
+    setDeletingId(work.id);
 
     try {
       const { error: deleteError } = await supabase
@@ -448,6 +568,7 @@ export default function AdminDashboardPage() {
       if (editingWorkId === work.id) resetForm();
       await loadGalleryData();
       setSuccessMessage("Karya berhasil dihapus.");
+      setDeleteTarget(null);
     } catch (error) {
       setErrorMessage(
         error instanceof Error
@@ -569,7 +690,10 @@ export default function AdminDashboardPage() {
                       ? "Pilih gambar baru untuk mengganti"
                       : "Tekan untuk memilih gambar"}
                 </strong>
-                <small>JPG, PNG, WEBP, atau GIF · maksimal 10 MB</small>
+                <small>
+                  JPG, PNG, WEBP, atau GIF · maksimal 10 MB · otomatis
+                  dioptimalkan
+                </small>
               </label>
               <input
                 accept="image/jpeg,image/png,image/webp,image/gif"
@@ -577,9 +701,22 @@ export default function AdminDashboardPage() {
                 ref={fileInputRef}
                 type="file"
                 onChange={(event) =>
-                  setSelectedFile(event.target.files?.[0] ?? null)
+                  void handleFileSelection(event.target.files?.[0] ?? null)
                 }
               />
+              {isPreparingImage && (
+                <p className={styles.imageStatus}>Mengoptimalkan gambar...</p>
+              )}
+              {preparedImage && (
+                <p className={styles.imageStatus}>
+                  {preparedImage.width} × {preparedImage.height} px ·{" "}
+                  {preparedImage.wasOptimized
+                    ? `${formatFileSize(preparedImage.originalBytes)} → ${formatFileSize(
+                        preparedImage.optimizedBytes,
+                      )}`
+                    : formatFileSize(preparedImage.optimizedBytes)}
+                </p>
+              )}
               {(previewUrl ||
                 (editingWorkId &&
                   works.find((work) => work.id === editingWorkId)?.image_url)) && (
@@ -743,12 +880,14 @@ export default function AdminDashboardPage() {
 
             <button
               className={styles.submitButton}
-              disabled={isSubmitting}
+              disabled={isSubmitting || isPreparingImage}
               type="submit"
             >
-              {isSubmitting
-                ? "Menyimpan karya..."
-                : editingWorkId
+              {isPreparingImage
+                ? "Memproses gambar..."
+                : isSubmitting
+                  ? "Menyimpan karya..."
+                  : editingWorkId
                   ? "Simpan perubahan"
                   : "Upload karya"}
               <span>↗</span>
@@ -764,57 +903,181 @@ export default function AdminDashboardPage() {
               <span className={styles.itemCount}>{works.length} karya</span>
             </div>
 
+            <div className={styles.collectionTools}>
+              <label className={styles.searchField}>
+                <span className={styles.srOnly}>Cari karya</span>
+                <input
+                  placeholder="Cari judul atau kreator..."
+                  type="search"
+                  value={searchQuery}
+                  onChange={(event) => setSearchQuery(event.target.value)}
+                />
+              </label>
+
+              <div className={styles.filterGrid}>
+                <label>
+                  <span className={styles.srOnly}>Filter kategori</span>
+                  <select
+                    value={categoryFilter}
+                    onChange={(event) => setCategoryFilter(event.target.value)}
+                  >
+                    <option value="all">Semua kategori</option>
+                    {categories.map((category) => (
+                      <option key={category.id} value={category.name}>
+                        {category.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
+                <label>
+                  <span className={styles.srOnly}>Filter status</span>
+                  <select
+                    value={statusFilter}
+                    onChange={(event) =>
+                      setStatusFilter(event.target.value as WorkStatusFilter)
+                    }
+                  >
+                    <option value="all">Semua status</option>
+                    <option value="published">Publik</option>
+                    <option value="draft">Draft</option>
+                    <option value="featured">Unggulan</option>
+                  </select>
+                </label>
+              </div>
+
+              <span className={styles.resultCount}>
+                {filteredWorks.length} hasil dari {works.length} karya
+              </span>
+            </div>
+
             {works.length === 0 ? (
               <div className={styles.emptyList}>
                 <strong>Belum ada karya.</strong>
                 <span>Isi form di samping untuk mengunggah karya pertama.</span>
               </div>
-            ) : (
-              <div className={styles.workList}>
-                {works.map((work) => (
-                  <article className={styles.workItem} key={work.id}>
-                    <img alt={work.title} src={work.image_url} />
-                    <div className={styles.workInfo}>
-                      <div>
-                        <span>
-                          {work.category} · {work.year}
-                        </span>
-                        <h3>{work.title}</h3>
-                        <p>{work.creator_name}</p>
-                      </div>
-                      <div className={styles.badges}>
-                        <small
-                          className={
-                            work.is_published
-                              ? styles.published
-                              : styles.draft
-                          }
-                        >
-                          {work.is_published ? "Publik" : "Draft"}
-                        </small>
-                        {work.is_featured && <small>Unggulan</small>}
-                      </div>
-                    </div>
-                    <div className={styles.itemActions}>
-                      <button type="button" onClick={() => handleEdit(work)}>
-                        Edit
-                      </button>
-                      <button
-                        className={styles.deleteButton}
-                        disabled={deletingId === work.id}
-                        type="button"
-                        onClick={() => void handleDelete(work)}
-                      >
-                        {deletingId === work.id ? "Menghapus..." : "Hapus"}
-                      </button>
-                    </div>
-                  </article>
-                ))}
+            ) : filteredWorks.length === 0 ? (
+              <div className={styles.emptyList}>
+                <strong>Karya tidak ditemukan.</strong>
+                <span>Ubah kata pencarian atau filter yang dipilih.</span>
               </div>
+            ) : (
+              <>
+                <div className={styles.workList}>
+                  {paginatedWorks.map((work) => (
+                    <article className={styles.workItem} key={work.id}>
+                      <img alt={work.title} loading="lazy" src={work.image_url} />
+                      <div className={styles.workInfo}>
+                        <div>
+                          <span>
+                            {work.category} · {work.year}
+                          </span>
+                          <h3>{work.title}</h3>
+                          <p>{work.creator_name}</p>
+                        </div>
+                        <div className={styles.badges}>
+                          <small
+                            className={
+                              work.is_published
+                                ? styles.published
+                                : styles.draft
+                            }
+                          >
+                            {work.is_published ? "Publik" : "Draft"}
+                          </small>
+                          {work.is_featured && <small>Unggulan</small>}
+                        </div>
+                      </div>
+                      <div className={styles.itemActions}>
+                        <button type="button" onClick={() => handleEdit(work)}>
+                          Edit
+                        </button>
+                        <button
+                          className={styles.deleteButton}
+                          disabled={deletingId === work.id}
+                          type="button"
+                          onClick={() => requestDelete(work)}
+                        >
+                          {deletingId === work.id ? "Menghapus..." : "Hapus"}
+                        </button>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+
+                {totalPages > 1 && (
+                  <nav
+                    aria-label="Navigasi halaman karya"
+                    className={styles.pagination}
+                  >
+                    <button
+                      disabled={currentPage === 1}
+                      type="button"
+                      onClick={() =>
+                        setCurrentPage((page) => Math.max(1, page - 1))
+                      }
+                    >
+                      Sebelumnya
+                    </button>
+                    <span>
+                      {currentPage} / {totalPages}
+                    </span>
+                    <button
+                      disabled={currentPage === totalPages}
+                      type="button"
+                      onClick={() =>
+                        setCurrentPage((page) => Math.min(totalPages, page + 1))
+                      }
+                    >
+                      Berikutnya
+                    </button>
+                  </nav>
+                )}
+              </>
             )}
           </section>
         </section>
       </section>
+
+      {deleteTarget && (
+        <div
+          aria-labelledby="delete-dialog-title"
+          aria-modal="true"
+          className={styles.modalBackdrop}
+          role="dialog"
+          onMouseDown={(event) => {
+            if (event.currentTarget === event.target && !deletingId) {
+              setDeleteTarget(null);
+            }
+          }}
+        >
+          <div className={styles.confirmModal}>
+            <p>HAPUS KARYA</p>
+            <h2 id="delete-dialog-title">Yakin ingin menghapus?</h2>
+            <span>
+              “{deleteTarget.title}” dan file gambarnya akan dihapus permanen.
+              Tindakan ini tidak dapat dibatalkan.
+            </span>
+            <div>
+              <button
+                disabled={Boolean(deletingId)}
+                type="button"
+                onClick={() => setDeleteTarget(null)}
+              >
+                Batal
+              </button>
+              <button
+                className={styles.confirmDeleteButton}
+                disabled={Boolean(deletingId)}
+                type="button"
+                onClick={() => void confirmDelete()}
+              >
+                {deletingId ? "Menghapus..." : "Ya, hapus"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }
