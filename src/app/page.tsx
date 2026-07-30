@@ -19,7 +19,8 @@ type Work = {
   description: string;
   label: string;
   background: string;
-  tall?: boolean;
+  ratio: number;
+  imageUrl?: string;
 };
 
 const categories: Category[] = [
@@ -43,7 +44,7 @@ const works: Work[] = [
     label: 'AFTER\nGLOW',
     background:
       'radial-gradient(circle at 72% 18%, #f8c7ff 0 4%, transparent 20%), linear-gradient(145deg, #161329 0%, #6e39b7 45%, #f47b62 100%)',
-    tall: true,
+    ratio: 4 / 5,
   },
   {
     id: 2,
@@ -56,6 +57,7 @@ const works: Work[] = [
     label: 'NUSA\nCOFFEE',
     background:
       'linear-gradient(135deg, #f4dfc1 0%, #c8865a 44%, #542f2d 100%)',
+    ratio: 1,
   },
   {
     id: 3,
@@ -68,7 +70,7 @@ const works: Work[] = [
     label: 'ORBIT\n01',
     background:
       'radial-gradient(circle at 50% 38%, #f7dd90 0 5%, transparent 6%), radial-gradient(circle at 50% 38%, transparent 0 24%, #ee9b5b 25% 26%, transparent 27%), linear-gradient(160deg, #12252b 0%, #195f64 48%, #0c171e 100%)',
-    tall: true,
+    ratio: 3 / 4,
   },
   {
     id: 4,
@@ -81,6 +83,7 @@ const works: Work[] = [
     label: 'NEXORA\nDASHBOARD',
     background:
       'linear-gradient(155deg, #101b3c 0%, #324ea3 44%, #7ba7ff 100%)',
+    ratio: 16 / 10,
   },
   {
     id: 5,
@@ -93,6 +96,7 @@ const works: Work[] = [
     label: 'PULSE',
     background:
       'radial-gradient(ellipse at 25% 80%, #ffd45b 0 7%, transparent 8%), linear-gradient(125deg, #f0443c 0%, #f07c3d 42%, #f7c950 100%)',
+    ratio: 4 / 5,
   },
   {
     id: 6,
@@ -105,6 +109,7 @@ const works: Work[] = [
     label: 'QUIET\nTYPE',
     background:
       'linear-gradient(135deg, #dfe3e8 0%, #a6b0bd 52%, #424b5a 100%)',
+    ratio: 3 / 4,
   },
 ];
 
@@ -262,22 +267,39 @@ export default function Home() {
         <div className="work-grid">
           {filteredWorks.map((work, index) => (
             <button
-              className={`work-card ${work.tall ? 'is-tall' : ''}`}
+              className="work-card"
               key={work.id}
               type="button"
               style={{ animationDelay: `${index * 70}ms` }}
               onClick={() => setSelectedWork(work)}
             >
               <div
-                className="work-art"
-                style={{ background: work.background }}
+                className={`work-art ${work.imageUrl ? 'has-image' : ''}`}
+                style={
+                  work.imageUrl
+                    ? undefined
+                    : {
+                        aspectRatio: work.ratio,
+                        background: work.background,
+                      }
+                }
               >
                 <span className="art-category">{work.category}</span>
-                <span className="art-label">
-                  {work.label.split('\n').map((line) => (
-                    <span key={line}>{line}</span>
-                  ))}
-                </span>
+                {work.imageUrl && (
+                  <img
+                    className="work-image"
+                    src={work.imageUrl}
+                    alt={work.title}
+                    loading="lazy"
+                  />
+                )}
+                {!work.imageUrl && (
+                  <span className="art-label">
+                    {work.label.split('\n').map((line) => (
+                      <span key={line}>{line}</span>
+                    ))}
+                  </span>
+                )}
                 <span className="art-index">0{work.id}</span>
               </div>
               <span className="work-meta">
@@ -351,15 +373,31 @@ export default function Home() {
             onClick={(event) => event.stopPropagation()}
           >
             <div
-              className="modal-art"
-              style={{ background: selectedWork.background }}
+              className={`modal-art ${selectedWork.imageUrl ? 'has-image' : ''}`}
+              style={
+                selectedWork.imageUrl
+                  ? undefined
+                  : {
+                      aspectRatio: selectedWork.ratio,
+                      background: selectedWork.background,
+                    }
+              }
             >
               <span className="art-category">{selectedWork.category}</span>
-              <span className="art-label">
-                {selectedWork.label.split('\n').map((line) => (
-                  <span key={line}>{line}</span>
-                ))}
-              </span>
+              {selectedWork.imageUrl && (
+                <img
+                  className="work-image"
+                  src={selectedWork.imageUrl}
+                  alt={selectedWork.title}
+                />
+              )}
+              {!selectedWork.imageUrl && (
+                <span className="art-label">
+                  {selectedWork.label.split('\n').map((line) => (
+                    <span key={line}>{line}</span>
+                  ))}
+                </span>
+              )}
             </div>
             <div className="modal-content">
               <button
