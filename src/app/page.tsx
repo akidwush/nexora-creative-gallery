@@ -23,6 +23,7 @@ type Work = {
   instagramUrl?: string | null;
   portfolioUrl?: string | null;
   isFeatured?: boolean;
+  isProtected?: boolean;
 };
 
 const fallbackWorks: Work[] = [
@@ -123,6 +124,7 @@ function mapDatabaseWork(work: GalleryWork): Work {
     instagramUrl: work.creator_instagram_url,
     portfolioUrl: work.creator_portfolio_url,
     isFeatured: work.is_featured,
+    isProtected: work.is_protected ?? false,
   };
 }
 
@@ -310,14 +312,21 @@ export default function Home() {
           type="button"
           onClick={() => openWork(featuredWork)}
         >
-          {featuredWork.imageUrl && (
-            <ProtectedImage
-              fill
-              imageClassName="hero-featured-image"
-              src={featuredWork.imageUrl}
-              alt={featuredWork.title}
-            />
-          )}
+          {featuredWork.imageUrl &&
+            (featuredWork.isProtected ? (
+              <ProtectedImage
+                fill
+                imageClassName="hero-featured-image"
+                src={featuredWork.imageUrl}
+                alt={featuredWork.title}
+              />
+            ) : (
+              <img
+                className="hero-featured-image"
+                src={featuredWork.imageUrl}
+                alt={featuredWork.title}
+              />
+            ))}
           {!featuredWork.imageUrl && (
             <>
               <div className="hero-orbit orbit-one" />
@@ -399,15 +408,24 @@ export default function Home() {
                 }
               >
                 <span className="art-category">{work.category}</span>
-                {work.imageUrl && (
-                  <ProtectedImage
-                    imageClassName="work-image"
-                    src={work.imageUrl}
-                    alt={work.title}
-                    loading="lazy"
-                    decoding="async"
-                  />
-                )}
+                {work.imageUrl &&
+                  (work.isProtected ? (
+                    <ProtectedImage
+                      imageClassName="work-image"
+                      src={work.imageUrl}
+                      alt={work.title}
+                      loading="lazy"
+                      decoding="async"
+                    />
+                  ) : (
+                    <img
+                      className="work-image"
+                      src={work.imageUrl}
+                      alt={work.title}
+                      loading="lazy"
+                      decoding="async"
+                    />
+                  ))}
                 {!work.imageUrl && (
                   <span className="art-label">
                     {work.label.split("\n").map((line) => (
@@ -505,13 +523,20 @@ export default function Home() {
               }
             >
               <span className="art-category">{selectedWork.category}</span>
-              {selectedWork.imageUrl && (
-                <ProtectedImage
-                  imageClassName="work-image"
-                  src={selectedWork.imageUrl}
-                  alt={selectedWork.title}
-                />
-              )}
+              {selectedWork.imageUrl &&
+                (selectedWork.isProtected ? (
+                  <ProtectedImage
+                    imageClassName="work-image"
+                    src={selectedWork.imageUrl}
+                    alt={selectedWork.title}
+                  />
+                ) : (
+                  <img
+                    className="work-image"
+                    src={selectedWork.imageUrl}
+                    alt={selectedWork.title}
+                  />
+                ))}
               {!selectedWork.imageUrl && (
                 <span className="art-label">
                   {selectedWork.label.split("\n").map((line) => (

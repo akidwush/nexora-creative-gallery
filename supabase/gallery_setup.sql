@@ -73,6 +73,7 @@ create table if not exists public.gallery_works (
   year integer not null default extract(year from current_date)::integer,
   is_featured boolean not null default false,
   is_published boolean not null default true,
+  is_protected boolean not null default false,
   created_by uuid references auth.users(id) on delete set null,
   created_at timestamptz not null default timezone('utc', now()),
   updated_at timestamptz not null default timezone('utc', now()),
@@ -85,6 +86,9 @@ create table if not exists public.gallery_works (
     creator_whatsapp is null or creator_whatsapp ~ '^[0-9]{8,16}$'
   )
 );
+
+alter table public.gallery_works
+  add column if not exists is_protected boolean not null default false;
 
 create index if not exists gallery_works_public_order_idx
   on public.gallery_works (is_published, is_featured desc, created_at desc);

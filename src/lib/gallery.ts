@@ -31,6 +31,7 @@ export type GalleryWork = {
   year: number;
   is_featured: boolean;
   is_published: boolean;
+  is_protected: boolean;
   created_by: string | null;
   created_at: string;
   updated_at: string;
@@ -47,6 +48,7 @@ export type GalleryWorkForm = {
   year: string;
   isFeatured: boolean;
   isPublished: boolean;
+  isProtected: boolean;
 };
 
 export const EMPTY_WORK_FORM: GalleryWorkForm = {
@@ -60,6 +62,7 @@ export const EMPTY_WORK_FORM: GalleryWorkForm = {
   year: String(new Date().getFullYear()),
   isFeatured: false,
   isPublished: true,
+  isProtected: false,
 };
 
 export const DEFAULT_GALLERY_CATEGORIES = [

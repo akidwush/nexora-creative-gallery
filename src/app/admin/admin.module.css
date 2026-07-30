@@ -348,7 +348,7 @@
 .switchGrid {
   display: grid;
   gap: 0.8rem;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   margin-top: 1.3rem;
 }
 
@@ -495,6 +495,11 @@
 .badges .draft {
   background: #f1efec;
   color: #77717a;
+}
+
+.badges .protectedBadge {
+  background: #17151b;
+  color: #d8ff65;
 }
 
 .itemActions {

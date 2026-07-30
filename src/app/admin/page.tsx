@@ -43,7 +43,12 @@ type DashboardStats = {
   categories: number;
 };
 
-type WorkStatusFilter = "all" | "published" | "draft" | "featured";
+type WorkStatusFilter =
+  | "all"
+  | "published"
+  | "draft"
+  | "featured"
+  | "protected";
 
 const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
 const PAGE_SIZE = 6;
@@ -102,7 +107,8 @@ export default function AdminDashboardPage() {
         statusFilter === "all" ||
         (statusFilter === "published" && work.is_published) ||
         (statusFilter === "draft" && !work.is_published) ||
-        (statusFilter === "featured" && work.is_featured);
+        (statusFilter === "featured" && work.is_featured) ||
+        (statusFilter === "protected" && work.is_protected);
 
       return matchesQuery && matchesCategory && matchesStatus;
     });
@@ -470,6 +476,7 @@ export default function AdminDashboardPage() {
         year,
         is_featured: form.isFeatured,
         is_published: form.isPublished,
+        is_protected: form.isProtected,
         created_by: sessionUserId,
         updated_at: new Date().toISOString(),
       };
@@ -543,6 +550,7 @@ export default function AdminDashboardPage() {
       year: String(work.year),
       isFeatured: work.is_featured,
       isPublished: work.is_published,
+      isProtected: work.is_protected ?? false,
     });
     setSuccessMessage("");
     setErrorMessage("");
@@ -895,6 +903,19 @@ export default function AdminDashboardPage() {
                   <small>Prioritaskan karya pada area hero.</small>
                 </span>
               </label>
+              <label>
+                <input
+                  checked={form.isProtected}
+                  type="checkbox"
+                  onChange={(event) =>
+                    updateForm("isProtected", event.target.checked)
+                  }
+                />
+                <span>
+                  <strong>Lindungi karya</strong>
+                  <small>Blokir unduhan biasa, salin, long-press, dan tarik gambar.</small>
+                </span>
+              </label>
             </div>
 
             <button
@@ -961,6 +982,7 @@ export default function AdminDashboardPage() {
                     <option value="published">Publik</option>
                     <option value="draft">Draft</option>
                     <option value="featured">Unggulan</option>
+                    <option value="protected">Dilindungi</option>
                   </select>
                 </label>
               </div>
@@ -1005,6 +1027,9 @@ export default function AdminDashboardPage() {
                             {work.is_published ? "Publik" : "Draft"}
                           </small>
                           {work.is_featured && <small>Unggulan</small>}
+                          {work.is_protected && (
+                            <small className={styles.protectedBadge}>Dilindungi</small>
+                          )}
                         </div>
                       </div>
                       <div className={styles.itemActions}>

@@ -659,3 +659,56 @@
   aspect-ratio: 4 / 5;
   object-fit: cover;
 }
+
+
+/* Animasi masuk halaman detail tetap dipertahankan. */
+@media (prefers-reduced-motion: no-preference) {
+  .header {
+    animation: detailHeaderIn 480ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  .imagePanel {
+    animation: detailArtworkIn 720ms 80ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  .contentPanel {
+    animation: detailContentIn 680ms 160ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  .relatedSection {
+    animation: detailContentIn 620ms 260ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+}
+
+@keyframes detailHeaderIn {
+  from {
+    opacity: 0;
+    transform: translateY(-12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes detailArtworkIn {
+  from {
+    opacity: 0;
+    transform: translateY(26px) scale(0.975);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes detailContentIn {
+  from {
+    opacity: 0;
+    transform: translateY(22px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

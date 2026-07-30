@@ -184,18 +184,38 @@ export default function WorkDetailPage() {
       <section className={styles.hero}>
         <div className={styles.imagePanel}>
           <div className={styles.imageFrame}>
-            <ProtectedImage
-              containerClassName={styles.protectedImage}
-              imageClassName={styles.detailImage}
-              src={work.image_url}
-              alt={work.title}
-              decoding="async"
-            />
+            {work.is_protected ? (
+              <ProtectedImage
+                containerClassName={styles.protectedImage}
+                imageClassName={styles.detailImage}
+                src={work.image_url}
+                alt={work.title}
+                decoding="async"
+              />
+            ) : (
+              <img
+                className={styles.detailImage}
+                src={work.image_url}
+                alt={work.title}
+                decoding="async"
+              />
+            )}
           </div>
-          <p className={styles.protectionNotice}>
-            Karya dilindungi. Unduhan langsung, tarik gambar, dan menu salin
-            gambar dinonaktifkan.
-          </p>
+          {work.is_protected ? (
+            <p className={styles.protectionNotice}>
+              Karya ini dilindungi. Unduhan biasa, long-press, tarik gambar, dan
+              menu salin gambar dinonaktifkan.
+            </p>
+          ) : (
+            <a
+              className={styles.fullImageLink}
+              href={work.image_url}
+              target="_blank"
+              rel="noreferrer"
+            >
+              Buka gambar resolusi penuh <span aria-hidden="true">↗</span>
+            </a>
+          )}
         </div>
 
         <article className={styles.contentPanel}>
@@ -299,13 +319,23 @@ export default function WorkDetailPage() {
                 key={relatedWork.id}
               >
                 <div className={styles.relatedImage}>
-                  <ProtectedImage
-                    imageClassName={styles.relatedArtwork}
-                    src={relatedWork.image_url}
-                    alt={relatedWork.title}
-                    loading="lazy"
-                    decoding="async"
-                  />
+                  {relatedWork.is_protected ? (
+                    <ProtectedImage
+                      imageClassName={styles.relatedArtwork}
+                      src={relatedWork.image_url}
+                      alt={relatedWork.title}
+                      loading="lazy"
+                      decoding="async"
+                    />
+                  ) : (
+                    <img
+                      className={styles.relatedArtwork}
+                      src={relatedWork.image_url}
+                      alt={relatedWork.title}
+                      loading="lazy"
+                      decoding="async"
+                    />
+                  )}
                   <span>{relatedWork.category}</span>
                 </div>
                 <div>
