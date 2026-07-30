@@ -1621,156 +1621,259 @@ a {
 }
 
 
-/* V4.4 — compact universal long-press preview + edge-to-edge artwork */
+/* V5 FINAL — motion system: native, lightweight, and low-end friendly */
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 5.5rem;
+}
+
+section[id] {
+  scroll-margin-top: 5.5rem;
+}
+
+/* Intro is controlled by React so skip can remove it immediately. */
+.intro-screen {
+  animation: none;
+  opacity: 1;
+  pointer-events: auto;
+  transform: translate3d(0, 0, 0);
+  transition:
+    opacity 520ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 520ms cubic-bezier(0.22, 1, 0.36, 1),
+    visibility 520ms step-end;
+  will-change: opacity, transform;
+}
+
+.intro-screen.is-leaving {
+  opacity: 0;
+  pointer-events: none;
+  transform: translate3d(0, -14px, 0);
+  visibility: hidden;
+}
+
+.intro-button,
+.skip-button {
+  transition:
+    transform 220ms cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 220ms ease,
+    background-color 220ms ease,
+    color 220ms ease;
+}
+
+.intro-button:hover,
+.intro-button:focus-visible {
+  transform: translate3d(0, -2px, 0);
+}
+
+.skip-button:hover,
+.skip-button:focus-visible {
+  color: rgba(255, 255, 255, 0.82);
+  outline: none;
+  transform: translate3d(0, -1px, 0);
+}
+
+/* Reusable viewport reveal. Only opacity and transform are animated. */
+.reveal-item {
+  opacity: 0;
+  transform: translate3d(0, 20px, 0);
+  transition:
+    opacity 620ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 620ms cubic-bezier(0.22, 1, 0.36, 1);
+  transition-delay: var(--reveal-delay, 0ms);
+}
+
+.reveal-item.reveal-fast {
+  transition-duration: 420ms;
+}
+
+.reveal-item.is-revealed {
+  opacity: 1;
+  transform: translate3d(0, 0, 0);
+}
+
+/* Existing card animation is replaced by IntersectionObserver staggering. */
+.work-card {
+  animation: none;
+  contain: layout paint style;
+}
+
+.work-art,
+.work-arrow,
+.primary-button span,
+.submit-link span {
+  backface-visibility: hidden;
+}
+
+/* Category/filter presence transition. */
+.category-list button {
+  transition:
+    background-color 240ms ease-out,
+    border-color 240ms ease-out,
+    color 240ms ease-out,
+    transform 240ms ease-out;
+}
+
+.category-list button:active {
+  transform: scale(0.96);
+}
+
+.work-grid {
+  transition: opacity 180ms ease-out;
+}
+
+.work-grid.filter-exit .work-card {
+  opacity: 0 !important;
+  transform: translate3d(0, 5px, 0) scale(0.965) !important;
+  transition:
+    opacity 160ms ease-in,
+    transform 160ms ease-in !important;
+  transition-delay: var(--filter-delay, 0ms) !important;
+}
+
+.work-grid.filter-enter .work-card.is-revealed {
+  animation: nexora-filter-enter 340ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: var(--filter-delay, 0ms);
+}
+
+@keyframes nexora-filter-enter {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 8px, 0) scale(0.972);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+/* Native View Transition API animates masonry reflow when supported. */
+::view-transition-group(*) {
+  animation-duration: 340ms;
+  animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+::view-transition-old(*) {
+  animation: nexora-vt-old 180ms ease-in both;
+}
+
+::view-transition-new(*) {
+  animation: nexora-vt-new 300ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes nexora-vt-old {
+  to {
+    opacity: 0;
+    transform: scale(0.975);
+  }
+}
+
+@keyframes nexora-vt-new {
+  from {
+    opacity: 0;
+    transform: scale(0.985);
+  }
+}
+
+/* Hover/focus micro-interactions only run on devices that actually hover. */
+@media (hover: hover) and (pointer: fine) {
+  .work-art {
+    transition:
+      transform 260ms cubic-bezier(0.22, 1, 0.36, 1),
+      box-shadow 260ms ease-out;
+  }
+
+  .work-card:hover .work-art,
+  .work-card:focus-visible .work-art {
+    box-shadow: 0 1.35rem 2.8rem rgba(30, 20, 40, 0.18);
+    transform: translate3d(0, -6px, 0) scale(1.012);
+  }
+
+  .work-card:hover .work-arrow,
+  .work-card:focus-visible .work-arrow {
+    transform: translate3d(4px, -4px, 0);
+  }
+
+  .hero-art {
+    transition:
+      transform 280ms cubic-bezier(0.22, 1, 0.36, 1),
+      box-shadow 280ms ease-out;
+  }
+
+  .hero-art:hover,
+  .hero-art:focus-visible {
+    box-shadow: 0 2.2rem 5.4rem rgba(42, 29, 63, 0.22);
+    transform: translate3d(0, -5px, 0) scale(1.008);
+  }
+
+  .primary-button:hover span,
+  .submit-link:hover span {
+    transform: translate3d(3px, -3px, 0);
+  }
+}
+
+.work-card:focus-visible,
+.hero-art:focus-visible {
+  border-radius: 1rem;
+  outline: 3px solid rgba(105, 81, 217, 0.35);
+  outline-offset: 4px;
+}
+
+.primary-button span,
+.submit-link span {
+  display: inline-block;
+  transition: transform 240ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Keep expensive effects out of the animation path. */
+.work-modal-backdrop {
+  -webkit-backdrop-filter: blur(12px) saturate(0.92);
+  backdrop-filter: blur(12px) saturate(0.92);
+}
+
 @media (max-width: 680px) {
-  .work-modal-backdrop {
-    align-items: center;
-    padding:
-      max(0.75rem, env(safe-area-inset-top))
-      max(0.75rem, env(safe-area-inset-right))
-      max(0.75rem, env(safe-area-inset-bottom))
-      max(0.75rem, env(safe-area-inset-left));
+  .reveal-item {
+    transform: translate3d(0, 16px, 0);
+    transition-duration: 520ms;
   }
 
-  .work-modal {
-    border-radius: 1.15rem;
-    display: flex;
-    flex-direction: column;
-    max-height: min(80dvh, 680px);
-    max-width: 520px;
-    min-height: 0;
-    overflow: hidden;
-    width: min(calc(100vw - 2.5rem), 520px);
-  }
-
-  .modal-art,
-  .modal-art.has-image {
-    background: #17151b !important;
-    flex: 0 0 clamp(190px, 28dvh, 260px);
-    height: clamp(190px, 28dvh, 260px);
-    min-height: 0;
-    width: 100%;
-  }
-
-  .modal-art .work-image,
-  .modal-art > [data-protected-artwork="true"] {
-    height: 100%;
-    max-height: none;
-    width: 100%;
-  }
-
-  .modal-art .work-image,
-  .modal-art > [data-protected-artwork="true"] img {
-    height: 100% !important;
-    object-fit: cover !important;
-    object-position: center;
-    width: 100% !important;
-  }
-
-  .modal-content {
-    flex: 1 1 auto;
-    min-height: 0;
-    overflow-y: auto;
-    padding: 1rem 1rem max(1rem, env(safe-area-inset-bottom));
-  }
-
-  .modal-content-head {
-    gap: 0.55rem;
-    padding-right: 2.7rem;
-  }
-
-  .modal-content h2 {
-    font-size: clamp(1.85rem, 8.5vw, 2.65rem);
-    line-height: 0.98;
-    margin: 1rem 0 0.55rem;
-  }
-
-  .modal-creator,
-  .modal-description {
-    font-size: 0.75rem;
-  }
-
-  .modal-description {
-    line-height: 1.62;
-    margin-top: 0.8rem;
-    -webkit-line-clamp: 3;
-  }
-
-  .modal-actions {
-    margin-top: 0.9rem;
-    padding-top: 0.85rem;
-  }
-
-  .modal-detail-button {
-    min-height: 44px;
-    padding: 0.75rem 0.95rem;
-  }
-
-  .modal-actions .creator-contact-list {
-    gap: 0.45rem;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    margin-top: 0.55rem;
-  }
-
-  .modal-contact-button {
-    min-height: 42px;
-    padding: 0.7rem 0.55rem;
-  }
-
-  .modal-tags span {
-    font-size: 0.56rem;
-    padding: 0.4rem 0.58rem;
-  }
-
-  .quick-preview-label {
-    bottom: 0.55rem;
-    font-size: 0.43rem;
-    left: 0.55rem;
-    padding: 0.42rem 0.55rem;
-  }
-
-  .modal-close {
-    height: 2.35rem;
-    right: 0.55rem;
-    top: 0.55rem;
-    width: 2.35rem;
+  .reveal-item.is-revealed {
+    transform: translate3d(0, 0, 0);
   }
 }
 
-@media (max-width: 390px) {
-  .work-modal {
-    max-height: 82dvh;
-    width: calc(100vw - 1.5rem);
+/* Accessibility: system reduced-motion disables all non-essential movement. */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
   }
 
-  .modal-art,
-  .modal-art.has-image {
-    flex-basis: clamp(175px, 26dvh, 225px);
-    height: clamp(175px, 26dvh, 225px);
+  *,
+  *::before,
+  *::after {
+    animation-delay: 0ms !important;
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-delay: 0ms !important;
+    transition-duration: 1ms !important;
   }
 
-  .modal-content {
-    padding-left: 0.85rem;
-    padding-right: 0.85rem;
+  .reveal-item,
+  .reveal-item.is-revealed,
+  .work-grid.filter-exit .work-card,
+  .work-grid.filter-enter .work-card {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
   }
 
-  .modal-actions .creator-contact-list {
-    grid-template-columns: 1fr 1fr;
-  }
-}
-
-@media (orientation: landscape) and (max-height: 540px) {
-  .work-modal {
-    display: grid;
-    grid-template-columns: minmax(220px, 0.9fr) minmax(280px, 1.1fr);
-    max-height: calc(100dvh - 1.5rem);
-    max-width: 760px;
-    width: min(calc(100vw - 1.5rem), 760px);
+  .intro-screen {
+    transform: none !important;
   }
 
-  .modal-art,
-  .modal-art.has-image {
-    height: 100%;
-    min-height: 0;
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
   }
 }

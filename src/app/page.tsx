@@ -1,7 +1,12 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { MouseEvent as ReactMouseEvent, PointerEvent as ReactPointerEvent } from "react";
+import type {
+  CSSProperties,
+  MouseEvent as ReactMouseEvent,
+  PointerEvent as ReactPointerEvent,
+} from "react";
+import { flushSync } from "react-dom";
 import { useRouter } from "next/navigation";
 import ProtectedImage from "@/components/protected-image";
 import { getWhatsAppUrl } from "@/lib/gallery";
@@ -26,6 +31,16 @@ type Work = {
   isFeatured?: boolean;
   isProtected?: boolean;
 };
+
+type FilterPhase = "idle" | "exit" | "enter";
+
+type ViewTransitionDocument = Document & {
+  startViewTransition?: (update: () => void) => { finished: Promise<void> };
+};
+
+function getViewTransitionName(id: string) {
+  return `work-${id.replace(/[^a-zA-Z0-9_-]/g, "-")}`;
+}
 
 const fallbackWorks: Work[] = [
   {
@@ -132,7 +147,10 @@ function mapDatabaseWork(work: GalleryWork): Work {
 export default function Home() {
   const router = useRouter();
   const [introVisible, setIntroVisible] = useState(true);
+  const [introLeaving, setIntroLeaving] = useState(false);
   const [activeCategory, setActiveCategory] = useState("Semua");
+  const [pendingCategory, setPendingCategory] = useState<string | null>(null);
+  const [filterPhase, setFilterPhase] = useState<FilterPhase>("idle");
   const [query, setQuery] = useState("");
   const [selectedWork, setSelectedWork] = useState<Work | null>(null);
   const [works, setWorks] = useState<Work[]>(fallbackWorks);
@@ -150,15 +168,49 @@ export default function Home() {
   const longPressTriggeredRef = useRef(false);
   const pointerStartRef = useRef<{ x: number; y: number } | null>(null);
   const modalCloseRef = useRef<HTMLButtonElement | null>(null);
+  const introAutoTimerRef = useRef<number | null>(null);
+  const introExitTimerRef = useRef<number | null>(null);
+  const filterTimersRef = useRef<number[]>([]);
+  const revealObserverRef = useRef<IntersectionObserver | null>(null);
+  const prefersReducedMotionRef = useRef(false);
 
   useEffect(() => {
+    const motionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+    prefersReducedMotionRef.current = motionQuery.matches;
+
     const hasVisited = window.sessionStorage.getItem("nexora-gallery-intro");
-    if (hasVisited) setIntroVisible(false);
+    if (hasVisited || motionQuery.matches) {
+      setIntroVisible(false);
+    } else {
+      introAutoTimerRef.current = window.setTimeout(() => {
+        window.sessionStorage.setItem("nexora-gallery-intro", "seen");
+        setIntroLeaving(true);
+        introExitTimerRef.current = window.setTimeout(() => {
+          setIntroVisible(false);
+        }, 520);
+      }, 2700);
+    }
 
     const hintSeen = window.localStorage.getItem(
       "nexora-work-longpress-hint-seen",
     );
     setShowLongPressHint(!hintSeen);
+
+    const handleMotionChange = (event: MediaQueryListEvent) => {
+      prefersReducedMotionRef.current = event.matches;
+    };
+    motionQuery.addEventListener?.("change", handleMotionChange);
+
+    return () => {
+      if (introAutoTimerRef.current !== null) {
+        window.clearTimeout(introAutoTimerRef.current);
+      }
+      if (introExitTimerRef.current !== null) {
+        window.clearTimeout(introExitTimerRef.current);
+      }
+      filterTimersRef.current.forEach((timer) => window.clearTimeout(timer));
+      motionQuery.removeEventListener?.("change", handleMotionChange);
+    };
   }, []);
 
   useEffect(() => {
@@ -236,9 +288,69 @@ export default function Home() {
     }
   }, [activeCategory, categories]);
 
-  const enterGallery = () => {
+  const enterGallery = (instant = false) => {
     window.sessionStorage.setItem("nexora-gallery-intro", "seen");
-    setIntroVisible(false);
+
+    if (introAutoTimerRef.current !== null) {
+      window.clearTimeout(introAutoTimerRef.current);
+      introAutoTimerRef.current = null;
+    }
+    if (introExitTimerRef.current !== null) {
+      window.clearTimeout(introExitTimerRef.current);
+      introExitTimerRef.current = null;
+    }
+
+    if (instant || prefersReducedMotionRef.current) {
+      setIntroLeaving(false);
+      setIntroVisible(false);
+      return;
+    }
+
+    setIntroLeaving(true);
+    introExitTimerRef.current = window.setTimeout(() => {
+      setIntroVisible(false);
+    }, 520);
+  };
+
+  const changeCategory = (category: string) => {
+    if (category === activeCategory && pendingCategory === null) return;
+
+    filterTimersRef.current.forEach((timer) => window.clearTimeout(timer));
+    filterTimersRef.current = [];
+
+    if (prefersReducedMotionRef.current) {
+      setActiveCategory(category);
+      setPendingCategory(null);
+      setFilterPhase("idle");
+      return;
+    }
+
+    setPendingCategory(category);
+    setFilterPhase("exit");
+
+    const swapTimer = window.setTimeout(() => {
+      const updateGrid = () => {
+        flushSync(() => {
+          setActiveCategory(category);
+          setPendingCategory(null);
+          setFilterPhase("enter");
+        });
+      };
+
+      const transitionDocument = document as ViewTransitionDocument;
+      if (transitionDocument.startViewTransition) {
+        transitionDocument.startViewTransition(updateGrid);
+      } else {
+        updateGrid();
+      }
+
+      const settleTimer = window.setTimeout(() => {
+        setFilterPhase("idle");
+      }, 360);
+      filterTimersRef.current.push(settleTimer);
+    }, 180);
+
+    filterTimersRef.current.push(swapTimer);
   };
 
   const dismissLongPressHint = () => {
@@ -329,6 +441,49 @@ export default function Home() {
     openWork(work);
   };
 
+  useEffect(() => {
+    if (introVisible) return;
+
+    const frame = window.requestAnimationFrame(() => {
+      const elements = Array.from(
+        document.querySelectorAll<HTMLElement>("[data-reveal]"),
+      );
+
+      if (
+        prefersReducedMotionRef.current ||
+        !("IntersectionObserver" in window)
+      ) {
+        elements.forEach((element) => element.classList.add("is-revealed"));
+        return;
+      }
+
+      const observer = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((entry) => {
+            if (!entry.isIntersecting) return;
+            entry.target.classList.add("is-revealed");
+            observer.unobserve(entry.target);
+          });
+        },
+        { threshold: 0.08, rootMargin: "0px 0px -7% 0px" },
+      );
+
+      elements.forEach((element) => {
+        if (!element.classList.contains("is-revealed")) {
+          observer.observe(element);
+        }
+      });
+
+      revealObserverRef.current?.disconnect();
+      revealObserverRef.current = observer;
+    });
+
+    return () => {
+      window.cancelAnimationFrame(frame);
+      revealObserverRef.current?.disconnect();
+    };
+  }, [introVisible, activeCategory, query, works, showLongPressHint]);
+
   const filteredWorks = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
 
@@ -345,6 +500,8 @@ export default function Home() {
     });
   }, [activeCategory, query, works]);
 
+  const selectedCategory = pendingCategory ?? activeCategory;
+
   const featuredWork =
     works.find((work) => work.isFeatured) ?? works[0] ?? fallbackWorks[0];
   const selectedWhatsAppUrl = selectedWork
@@ -355,7 +512,11 @@ export default function Home() {
   return (
     <main className="nexora-shell">
       {introVisible && (
-        <div className="intro-screen" role="dialog" aria-label="Nexora intro">
+        <div
+          className={`intro-screen ${introLeaving ? "is-leaving" : ""}`}
+          role="dialog"
+          aria-label="Nexora intro"
+        >
           <div className="intro-glow intro-glow-one" />
           <div className="intro-glow intro-glow-two" />
           <div className="intro-mark" aria-hidden="true">
@@ -372,16 +533,24 @@ export default function Home() {
           <p className="intro-copy">
             Galeri resmi karya pemenang event dan challenge Nexora.
           </p>
-          <button className="intro-button" type="button" onClick={enterGallery}>
+          <button
+            className="intro-button"
+            type="button"
+            onClick={() => enterGallery(false)}
+          >
             Lihat karya pemenang <span>↗</span>
           </button>
-          <button className="skip-button" type="button" onClick={enterGallery}>
+          <button
+            className="skip-button"
+            type="button"
+            onClick={() => enterGallery(true)}
+          >
             Lewati intro
           </button>
         </div>
       )}
 
-      <header className="site-header">
+      <header className="site-header reveal-item reveal-fast" data-reveal>
         <a className="brand" href="#top" aria-label="Nexora Creative Gallery">
           <span className="brand-symbol">N</span>
           <span>
@@ -402,7 +571,7 @@ export default function Home() {
       </header>
 
       <section className="hero-section" id="top">
-        <div className="hero-copy">
+        <div className="hero-copy reveal-item" data-reveal>
           <p className="eyebrow">GALERI PEMENANG NEXORA</p>
           <h2>
             Karya terbaik.
@@ -420,7 +589,8 @@ export default function Home() {
         </div>
 
         <button
-          className={`hero-art ${featuredWork.imageUrl ? "has-featured-image" : ""}`}
+          className={`hero-art reveal-item ${featuredWork.imageUrl ? "has-featured-image" : ""}`}
+          data-reveal
           aria-label={`Buka karya unggulan ${featuredWork.title}`}
           type="button"
           onClick={(event) => handleWorkClick(featuredWork, event)}
@@ -466,7 +636,7 @@ export default function Home() {
       </section>
 
       <section className="gallery-section" id="gallery">
-        <div className="section-heading">
+        <div className="section-heading reveal-item" data-reveal>
           <div>
             <p className="eyebrow">WINNER COLLECTION</p>
             <h2>Karya pemenang</h2>
@@ -477,14 +647,15 @@ export default function Home() {
           </p>
         </div>
 
-        <div className="gallery-toolbar">
+        <div className="gallery-toolbar reveal-item" data-reveal>
           <div className="category-list" aria-label="Filter kategori">
             {categories.map((category) => (
               <button
-                className={activeCategory === category ? "selected" : ""}
+                className={selectedCategory === category ? "selected" : ""}
                 key={category}
                 type="button"
-                onClick={() => setActiveCategory(category)}
+                aria-pressed={selectedCategory === category}
+                onClick={() => changeCategory(category)}
               >
                 {category}
               </button>
@@ -503,11 +674,17 @@ export default function Home() {
         </div>
 
         {isGalleryLoading && (
-          <p className="gallery-loading">Memuat koleksi terbaru...</p>
+          <p className="gallery-loading reveal-item" data-reveal>
+            Memuat koleksi terbaru...
+          </p>
         )}
 
         {showLongPressHint && (
-          <div className="long-press-hint" role="status">
+          <div
+            className="long-press-hint reveal-item"
+            role="status"
+            data-reveal
+          >
             <span aria-hidden="true">◎</span>
             <p>
               Tahan kartu karya selama <strong>0,6 detik</strong> untuk melihat
@@ -523,13 +700,23 @@ export default function Home() {
           </div>
         )}
 
-        <div className="work-grid">
+        <div
+          className={`work-grid filter-${filterPhase}`}
+          aria-busy={filterPhase !== "idle"}
+        >
           {filteredWorks.map((work, index) => (
             <button
-              className="work-card"
+              className="work-card reveal-item"
+              data-reveal
               key={work.id}
               type="button"
-              style={{ animationDelay: `${index * 70}ms` }}
+              style={
+                {
+                  "--reveal-delay": `${Math.min(index, 9) * 55}ms`,
+                  "--filter-delay": `${Math.min(index, 8) * 24}ms`,
+                  viewTransitionName: getViewTransitionName(work.id),
+                } as CSSProperties
+              }
               onClick={(event) => handleWorkClick(work, event)}
               onPointerDown={(event) => beginLongPress(work, event)}
               onPointerMove={moveLongPress}
@@ -591,13 +778,13 @@ export default function Home() {
         </div>
 
         {filteredWorks.length === 0 && (
-          <div className="empty-state">
+          <div className="empty-state reveal-item" data-reveal>
             <p>Belum ada karya yang cocok.</p>
             <button
               type="button"
               onClick={() => {
                 setQuery("");
-                setActiveCategory("Semua");
+                changeCategory("Semua");
               }}
             >
               Reset pencarian
@@ -607,11 +794,11 @@ export default function Home() {
       </section>
 
       <section className="about-section" id="about">
-        <div>
+        <div className="reveal-item" data-reveal>
           <p className="eyebrow">TENTANG GALERI</p>
           <h2>Setiap kemenangan layak diingat.</h2>
         </div>
-        <p>
+        <p className="reveal-item" data-reveal>
           Nexora Creative Gallery adalah arsip resmi karya pemenang.
           Galeri ini hanya menampilkan karya yang telah terpilih dalam event
           atau challenge Nexora agar pencapaian kreator tetap tercatat dan
@@ -619,7 +806,7 @@ export default function Home() {
         </p>
       </section>
 
-      <section className="submit-section" id="submit">
+      <section className="submit-section reveal-item" id="submit" data-reveal>
         <p className="eyebrow">PEMENANG NEXORA?</p>
         <h2>Konfirmasi karyamu.</h2>
         <p className="submit-description">
@@ -635,7 +822,7 @@ export default function Home() {
         </a>
       </section>
 
-      <footer className="site-footer">
+      <footer className="site-footer reveal-item" data-reveal>
         <span>© 2026 NEXORA CREATIVE GALLERY</span>
         <span>Terpilih · Menang · Diabadikan</span>
       </footer>
