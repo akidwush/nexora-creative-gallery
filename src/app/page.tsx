@@ -6,7 +6,6 @@ import type {
   MouseEvent as ReactMouseEvent,
   PointerEvent as ReactPointerEvent,
 } from "react";
-import { flushSync } from "react-dom";
 import { useRouter } from "next/navigation";
 import ProtectedImage from "@/components/protected-image";
 import { getWhatsAppUrl } from "@/lib/gallery";
@@ -33,14 +32,6 @@ type Work = {
 };
 
 type FilterPhase = "idle" | "exit" | "enter";
-
-type ViewTransitionDocument = Document & {
-  startViewTransition?: (update: () => void) => { finished: Promise<void> };
-};
-
-function getViewTransitionName(id: string) {
-  return `work-${id.replace(/[^a-zA-Z0-9_-]/g, "-")}`;
-}
 
 function mapDatabaseWork(work: GalleryWork): Work {
   return {
@@ -285,30 +276,21 @@ export default function Home() {
       return;
     }
 
+    // Use one controlled CSS sequence. Running the View Transition API together
+    // with card animations caused duplicate snapshots and visible flicker on Android.
     setPendingCategory(category);
     setFilterPhase("exit");
 
     const swapTimer = window.setTimeout(() => {
-      const updateGrid = () => {
-        flushSync(() => {
-          setActiveCategory(category);
-          setPendingCategory(null);
-          setFilterPhase("enter");
-        });
-      };
-
-      const transitionDocument = document as ViewTransitionDocument;
-      if (transitionDocument.startViewTransition) {
-        transitionDocument.startViewTransition(updateGrid);
-      } else {
-        updateGrid();
-      }
+      setActiveCategory(category);
+      setPendingCategory(null);
+      setFilterPhase("enter");
 
       const settleTimer = window.setTimeout(() => {
         setFilterPhase("idle");
-      }, 360);
+      }, 430);
       filterTimersRef.current.push(settleTimer);
-    }, 180);
+    }, 175);
 
     filterTimersRef.current.push(swapTimer);
   };
@@ -674,20 +656,19 @@ export default function Home() {
         )}
 
         <div
-          className={`work-grid filter-${filterPhase}`}
+          className={`work-grid reveal-grid filter-${filterPhase}`}
+          data-reveal
           aria-busy={filterPhase !== "idle"}
         >
           {filteredWorks.map((work, index) => (
             <button
-              className="work-card reveal-item"
-              data-reveal
+              className="work-card"
               key={work.id}
               type="button"
               style={
                 {
                   "--reveal-delay": `${Math.min(index, 9) * 55}ms`,
-                  "--filter-delay": `${Math.min(index, 8) * 24}ms`,
-                  viewTransitionName: getViewTransitionName(work.id),
+                  "--filter-delay": `${Math.min(index, 6) * 18}ms`,
                 } as CSSProperties
               }
               onClick={(event) => handleWorkClick(work, event)}

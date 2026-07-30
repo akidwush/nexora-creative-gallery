@@ -1731,10 +1731,25 @@ section[id] {
   transform: translate3d(0, 0, 0);
 }
 
-/* Existing card animation is replaced by IntersectionObserver staggering. */
+/* Cards reveal as a stable grid. The grid keeps its revealed state while
+   category items are replaced, so freshly filtered cards do not flash hidden. */
 .work-card {
   animation: none;
   contain: layout paint style;
+}
+
+.reveal-grid .work-card {
+  opacity: 0;
+  transform: translate3d(0, 20px, 0);
+  transition:
+    opacity 560ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 560ms cubic-bezier(0.22, 1, 0.36, 1);
+  transition-delay: var(--reveal-delay, 0ms);
+}
+
+.reveal-grid.is-revealed .work-card {
+  opacity: 1;
+  transform: translate3d(0, 0, 0);
 }
 
 .work-art,
@@ -1767,11 +1782,11 @@ section[id] {
   transition:
     opacity 160ms ease-in,
     transform 160ms ease-in !important;
-  transition-delay: var(--filter-delay, 0ms) !important;
+  transition-delay: 0ms !important;
 }
 
-.work-grid.filter-enter .work-card.is-revealed {
-  animation: nexora-filter-enter 340ms cubic-bezier(0.22, 1, 0.36, 1) both;
+.work-grid.filter-enter .work-card {
+  animation: nexora-filter-enter 300ms cubic-bezier(0.22, 1, 0.36, 1) both;
   animation-delay: var(--filter-delay, 0ms);
 }
 
@@ -1786,33 +1801,8 @@ section[id] {
   }
 }
 
-/* Native View Transition API animates masonry reflow when supported. */
-::view-transition-group(*) {
-  animation-duration: 340ms;
-  animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-::view-transition-old(*) {
-  animation: nexora-vt-old 180ms ease-in both;
-}
-
-::view-transition-new(*) {
-  animation: nexora-vt-new 300ms cubic-bezier(0.22, 1, 0.36, 1) both;
-}
-
-@keyframes nexora-vt-old {
-  to {
-    opacity: 0;
-    transform: scale(0.975);
-  }
-}
-
-@keyframes nexora-vt-new {
-  from {
-    opacity: 0;
-    transform: scale(0.985);
-  }
-}
+/* Filtering intentionally avoids the native View Transition API. On several
+   Android browsers it duplicates image snapshots and produces a brief blink. */
 
 /* Hover/focus micro-interactions only run on devices that actually hover. */
 @media (hover: hover) and (pointer: fine) {
@@ -1900,6 +1890,8 @@ section[id] {
 
   .reveal-item,
   .reveal-item.is-revealed,
+  .reveal-grid .work-card,
+  .reveal-grid.is-revealed .work-card,
   .work-grid.filter-exit .work-card,
   .work-grid.filter-enter .work-card {
     animation: none !important;
@@ -1911,11 +1903,6 @@ section[id] {
     transform: none !important;
   }
 
-  ::view-transition-group(*),
-  ::view-transition-old(*),
-  ::view-transition-new(*) {
-    animation: none !important;
-  }
 }
 
 
