@@ -233,7 +233,7 @@ values (
   'gallery-works',
   'gallery-works',
   true,
-  10485760,
+  52428800,
   array['image/jpeg', 'image/png', 'image/webp', 'image/gif']
 )
 on conflict (id) do update

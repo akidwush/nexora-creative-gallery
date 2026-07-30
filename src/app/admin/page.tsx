@@ -50,7 +50,7 @@ type WorkStatusFilter =
   | "featured"
   | "protected";
 
-const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
+const MAX_IMAGE_BYTES = 50 * 1024 * 1024;
 const PAGE_SIZE = 6;
 
 export default function AdminDashboardPage() {
@@ -412,7 +412,7 @@ export default function AdminDashboardPage() {
       }
 
       if (selectedFile.size > MAX_IMAGE_BYTES) {
-        setErrorMessage("Ukuran gambar maksimal 10 MB.");
+        setErrorMessage("Ukuran gambar maksimal 50 MB.");
         return;
       }
     }
@@ -746,7 +746,7 @@ export default function AdminDashboardPage() {
                       : "Tekan untuk memilih gambar"}
                 </strong>
                 <small>
-                  JPG, PNG, WEBP, atau GIF · maksimal 10 MB · otomatis
+                  JPG, PNG, WEBP, atau GIF · maksimal 50 MB · otomatis
                   dioptimalkan
                 </small>
               </label>

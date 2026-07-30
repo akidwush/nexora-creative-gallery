@@ -8,7 +8,7 @@ Website galeri karya visual Nexora menggunakan Next.js 16 dan Supabase.
 - Detail karya beserta WhatsApp, Instagram, dan portfolio kreator.
 - Login admin/editor menggunakan Supabase Auth.
 - Dashboard upload, edit, draft/publikasi, unggulan, dan hapus karya.
-- Upload gambar ke Supabase Storage dengan batas 10 MB.
+- Upload gambar ke Supabase Storage dengan batas 50 MB.
 - Row Level Security untuk tabel dan Storage.
 
 ## 1. Konfigurasi environment

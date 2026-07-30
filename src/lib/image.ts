@@ -5,7 +5,7 @@ const ALLOWED_IMAGE_TYPES = new Set([
   "image/gif",
 ]);
 
-const MAX_INPUT_BYTES = 10 * 1024 * 1024;
+const MAX_INPUT_BYTES = 50 * 1024 * 1024;
 const TARGET_OUTPUT_BYTES = 2.5 * 1024 * 1024;
 const MAX_DIMENSION = 2560;
 const MIN_DIMENSION = 320;
@@ -71,7 +71,7 @@ export async function prepareGalleryImage(
   }
 
   if (sourceFile.size > MAX_INPUT_BYTES) {
-    throw new Error("Ukuran gambar awal maksimal 10 MB.");
+    throw new Error("Ukuran gambar awal maksimal 50 MB.");
   }
 
   const image = await loadImage(sourceFile);
