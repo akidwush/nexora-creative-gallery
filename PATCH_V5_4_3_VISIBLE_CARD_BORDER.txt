@@ -1,0 +1,10 @@
+NEXORA CREATIVE GALLERY — V5.4.3 VISIBLE CARD BORDER
+
+Perubahan:
+- Border nyata 1px #D8D5CE pada setiap wrapper gambar kartu galeri.
+- Shadow halus diperkuat agar kartu terpisah jelas dari latar krem.
+- Background wrapper gambar tidak lagi transparan.
+- Border berubah sedikit ke violet saat hover/focus pada perangkat yang mendukung hover.
+- Berlaku konsisten untuk gambar biasa dan ProtectedImage.
+
+Tidak memerlukan SQL atau dependency baru.
