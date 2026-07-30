@@ -569,6 +569,79 @@
   width: 4rem;
 }
 
+.accessPage {
+  align-items: center;
+  background:
+    linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+    #121016;
+  background-size: 84px 84px;
+  display: flex;
+  justify-content: center;
+  min-height: 100svh;
+  padding: 1.25rem;
+}
+
+.accessCard {
+  background: #1a171f;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 1.5rem;
+  box-shadow: 0 2rem 5rem rgba(0, 0, 0, 0.28);
+  color: #f8f6f2;
+  max-width: 560px;
+  padding: clamp(1.4rem, 5vw, 2.6rem);
+  width: 100%;
+}
+
+.accessCard > p {
+  color: rgba(255, 255, 255, 0.5);
+  font-family: monospace;
+  font-size: 0.62rem;
+  letter-spacing: 0.16em;
+  margin: 1.4rem 0 0;
+}
+
+.accessCard h1 {
+  font-size: clamp(2rem, 8vw, 3.8rem);
+  font-weight: 500;
+  letter-spacing: -0.065em;
+  line-height: 0.96;
+  margin: 0.8rem 0 0;
+}
+
+.accessCard > a {
+  color: rgba(255, 255, 255, 0.58);
+  display: inline-block;
+  font-size: 0.7rem;
+  margin-top: 1.4rem;
+}
+
+.accessActions {
+  display: grid;
+  gap: 0.7rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-top: 1rem;
+}
+
+.accessActions button {
+  background: #d8ff65;
+  border: 0;
+  border-radius: 999px;
+  color: #17151b;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.72rem;
+  font-weight: 800;
+  min-height: 3rem;
+  padding: 0.8rem 1rem;
+}
+
+.accessActions button:last-child {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  color: #f8f6f2;
+}
+
 @media (max-width: 980px) {
   .workspace {
     grid-template-columns: 1fr;
@@ -629,6 +702,10 @@
     display: flex;
     grid-column: 1 / -1;
     justify-content: flex-end;
+  }
+
+  .accessActions {
+    grid-template-columns: 1fr;
   }
 }
 

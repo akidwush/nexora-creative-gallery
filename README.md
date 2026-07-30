@@ -1,65 +1,88 @@
 # Nexora Creative Gallery
 
-Website galeri karya visual Nexora menggunakan Next.js 16 dan Supabase.
+Galeri karya visual berbasis Next.js 16, Supabase, dan Vercel. Tampilan galeri
+menggunakan masonry sehingga gambar portrait, landscape, persegi, panorama,
+dan rasio tinggi tetap mengikuti proporsi aslinya.
 
-## Fitur
+## Route
 
-- Galeri masonry responsif dengan filter kategori dan pencarian.
-- Detail karya beserta WhatsApp, Instagram, dan portfolio kreator.
-- Login admin/editor menggunakan Supabase Auth.
-- Dashboard upload, edit, draft/publikasi, unggulan, dan hapus karya.
-- Upload gambar ke Supabase Storage dengan batas 50 MB.
-- Row Level Security untuk tabel dan Storage.
+- `/` — galeri publik
+- `/karya/[id]` — detail karya dengan metadata sosial
+- `/admin/login` — login admin/editor
+- `/admin` — dashboard
+- `/admin/dashboard` — otomatis dialihkan ke `/admin`
 
-## 1. Konfigurasi environment
+## Environment
 
-Buat `.env.local`:
+Buat `.env.local` untuk penggunaan lokal dan pasang nilai yang sama di Vercel:
 
 ```env
 NEXT_PUBLIC_SUPABASE_URL=https://PROJECT.supabase.co
 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=KEY_KAMU
+NEXT_PUBLIC_SITE_URL=https://nexora-creative-gallery.vercel.app
+NEXT_PUBLIC_NEXORA_WHATSAPP=628xxxxxxxxxx
 ```
 
-`NEXT_PUBLIC_SUPABASE_ANON_KEY` juga tetap didukung sebagai nama alternatif key.
+`NEXT_PUBLIC_SUPABASE_ANON_KEY` tetap didukung sebagai nama alternatif untuk
+publishable key. Jangan pernah meletakkan `service_role` key di variabel
+`NEXT_PUBLIC_*`.
 
-## 2. Siapkan database dan Storage
+## Supabase
 
-Buka Supabase Dashboard → **SQL Editor**, lalu jalankan seluruh isi:
+Jalankan seluruh isi berikut melalui Supabase Dashboard → SQL Editor:
 
 ```text
 supabase/gallery_setup.sql
 ```
 
-Script tersebut membuat tabel `gallery_categories`, `gallery_creators`, `gallery_works`, bucket `gallery-works`, seed enam kategori, trigger, dan seluruh RLS policy.
+Script aman dijalankan ulang dan akan:
 
-Akun yang boleh mengelola karya harus memiliki baris pada tabel `profiles` dengan:
+- menyiapkan `profiles` bila belum ada;
+- membuat/memperbarui tabel galeri;
+- membuat bucket `gallery-works`;
+- memasang RLS;
+- mengaktifkan realtime untuk karya dan kategori;
+- menambahkan transaksi `save_gallery_work`;
+- memastikan hanya satu karya yang berstatus unggulan.
 
-```text
-role = admin
+Sesudah membuat akun melalui Supabase Authentication, berikan akses dengan SQL:
+
+```sql
+insert into public.profiles (id, display_name, role)
+select id, 'Nexora Admin', 'admin'
+from auth.users
+where email = 'EMAIL_ADMIN_KAMU'
+on conflict (id) do update
+set display_name = excluded.display_name,
+    role = excluded.role;
 ```
 
-atau:
+## Validasi
 
-```text
-role = editor
+```bash
+npm ci
+npm run check
 ```
 
-## 3. Build di Termux
+`npm run check` menjalankan lint tanpa warning lalu production build melalui
+Webpack agar tetap kompatibel dengan workflow Android/Termux.
+
+## Deploy dari Termux
+
+Setelah ZIP total fix diekstrak ke `~/nexora-gallery`:
 
 ```bash
 cd ~/nexora-gallery
-npm install
-npm run build
-```
-
-Script build sudah menggunakan Webpack agar kompatibel dengan Android/Termux.
-
-## 4. Deploy
-
-```bash
 git add -A
-git commit -m "feat: add complete gallery upload management"
+git commit -m "fix: stabilize Nexora gallery"
 git push origin main
 ```
 
 Vercel akan melakukan deployment otomatis dari branch `main`.
+
+## Catatan watermark
+
+Opsi watermark memblokir long-press, drag, menu konteks biasa, dan menambahkan
+watermark visual. Gambar yang memang ditampilkan untuk publik tetap dapat
+direkam atau diambil melalui jaringan browser; tidak ada website yang dapat
+mencegahnya secara mutlak.

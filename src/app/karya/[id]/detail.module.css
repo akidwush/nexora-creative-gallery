@@ -436,7 +436,8 @@
   margin: 0.4rem 0 0.6rem;
 }
 
-.statePage button {
+.statePage button,
+.stateLink {
   background: #17151b;
   border: 0;
   border-radius: 999px;
@@ -446,6 +447,25 @@
   font-weight: 700;
   margin-top: 1rem;
   padding: 0.9rem 1.2rem;
+}
+
+.stateLink {
+  display: inline-flex;
+  text-decoration: none;
+}
+
+.stateActions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.7rem;
+  justify-content: center;
+}
+
+.stateActions .stateLink {
+  background: transparent;
+  border: 1px solid rgba(23, 21, 27, 0.18);
+  color: #17151b;
 }
 
 .stateCode {

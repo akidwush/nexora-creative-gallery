@@ -1,5 +1,8 @@
 "use client";
 
+/* Dynamic Supabase images keep their intrinsic ratio in the masonry layout. */
+/* eslint-disable @next/next/no-img-element */
+
 import { useEffect, useMemo, useRef, useState } from "react";
 import type {
   CSSProperties,
@@ -32,6 +35,22 @@ type Work = {
 };
 
 const BRAND_TAGLINE = "Create. Inspire. Connect.";
+
+function readLocalPreference(key: string) {
+  try {
+    return window.localStorage.getItem(key);
+  } catch {
+    return null;
+  }
+}
+
+function writeLocalPreference(key: string, value: string) {
+  try {
+    window.localStorage.setItem(key, value);
+  } catch {
+    // The gallery remains functional when browser storage is unavailable.
+  }
+}
 
 function mapDatabaseWork(work: GalleryWork): Work {
   return {
@@ -82,23 +101,25 @@ export default function Home() {
     const motionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
     prefersReducedMotionRef.current = motionQuery.matches;
 
-    const hasVisited = window.localStorage.getItem("hasSeenIntro");
-    if (hasVisited || motionQuery.matches) {
-      setIntroVisible(false);
-    } else {
-      introAutoTimerRef.current = window.setTimeout(() => {
-        window.localStorage.setItem("hasSeenIntro", "true");
-        setIntroLeaving(true);
-        introExitTimerRef.current = window.setTimeout(() => {
-          setIntroVisible(false);
-        }, 360);
-      }, 1350);
-    }
+    const initializationFrame = window.requestAnimationFrame(() => {
+      const hasVisited = readLocalPreference("hasSeenIntro");
+      if (hasVisited || motionQuery.matches) {
+        setIntroVisible(false);
+      } else {
+        introAutoTimerRef.current = window.setTimeout(() => {
+          writeLocalPreference("hasSeenIntro", "true");
+          setIntroLeaving(true);
+          introExitTimerRef.current = window.setTimeout(() => {
+            setIntroVisible(false);
+          }, 360);
+        }, 1350);
+      }
 
-    const hintSeen = window.localStorage.getItem(
-      "nexora-work-longpress-hint-seen",
-    );
-    setShowLongPressHint(!hintSeen);
+      const hintSeen = readLocalPreference(
+        "nexora-work-longpress-hint-seen",
+      );
+      setShowLongPressHint(!hintSeen);
+    });
 
     const handleMotionChange = (event: MediaQueryListEvent) => {
       prefersReducedMotionRef.current = event.matches;
@@ -106,6 +127,7 @@ export default function Home() {
     motionQuery.addEventListener?.("change", handleMotionChange);
 
     return () => {
+      window.cancelAnimationFrame(initializationFrame);
       if (introAutoTimerRef.current !== null) {
         window.clearTimeout(introAutoTimerRef.current);
       }
@@ -255,17 +277,13 @@ export default function Home() {
     return ["Semua", ...orderedCategories, ...missingCategories];
   }, [categories, categoryCounts]);
 
-  useEffect(() => {
-    if (
-      activeCategory !== "Semua" &&
-      !visibleCategories.includes(activeCategory)
-    ) {
-      setActiveCategory("Semua");
-    }
-  }, [activeCategory, visibleCategories]);
+  const resolvedActiveCategory =
+    activeCategory === "Semua" || visibleCategories.includes(activeCategory)
+      ? activeCategory
+      : "Semua";
 
   const enterGallery = (instant = false) => {
-    window.localStorage.setItem("hasSeenIntro", "true");
+    writeLocalPreference("hasSeenIntro", "true");
 
     if (introAutoTimerRef.current !== null) {
       window.clearTimeout(introAutoTimerRef.current);
@@ -289,7 +307,7 @@ export default function Home() {
   };
 
   const changeCategory = (category: string) => {
-    if (category === activeCategory && pendingCategory === null) return;
+    if (category === resolvedActiveCategory && pendingCategory === null) return;
     if (category === pendingCategory) return;
 
     const requestId = ++filterRequestRef.current;
@@ -369,11 +387,17 @@ export default function Home() {
           });
         });
       })
-      .catch(() => undefined);
+      .catch(() => {
+        if (requestId !== filterRequestRef.current) return;
+        exitAnimation.cancel();
+        filterAnimationRef.current = null;
+        setActiveCategory(category);
+        setPendingCategory(null);
+      });
   };
 
   const dismissLongPressHint = () => {
-    window.localStorage.setItem("nexora-work-longpress-hint-seen", "true");
+    writeLocalPreference("nexora-work-longpress-hint-seen", "true");
     setShowLongPressHint(false);
   };
 
@@ -508,7 +532,8 @@ export default function Home() {
 
     return works.filter((work) => {
       const matchesCategory =
-        activeCategory === "Semua" || work.category === activeCategory;
+        resolvedActiveCategory === "Semua" ||
+        work.category === resolvedActiveCategory;
       const matchesQuery =
         !normalizedQuery ||
         `${work.title} ${work.creator} ${work.category}`
@@ -517,9 +542,9 @@ export default function Home() {
 
       return matchesCategory && matchesQuery;
     });
-  }, [activeCategory, query, works]);
+  }, [query, resolvedActiveCategory, works]);
 
-  const selectedCategory = pendingCategory ?? activeCategory;
+  const selectedCategory = pendingCategory ?? resolvedActiveCategory;
 
   const featuredWork = works.find((work) => work.isFeatured) ?? null;
   const selectedWhatsAppUrl = selectedWork

@@ -6,11 +6,26 @@ import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import styles from "./login.module.css";
 
-type LoginApiResponse = {
-  access_token?: string;
-  refresh_token?: string;
-  error?: string;
-};
+function getFriendlyAuthError(message: string) {
+  const normalizedMessage = message.toLowerCase();
+
+  if (normalizedMessage.includes("invalid login credentials")) {
+    return "Email atau password salah. Silakan periksa kembali.";
+  }
+
+  if (normalizedMessage.includes("email not confirmed")) {
+    return "Email akun belum dikonfirmasi di Supabase Auth.";
+  }
+
+  if (
+    normalizedMessage.includes("failed to fetch") ||
+    normalizedMessage.includes("network")
+  ) {
+    return "Supabase tidak dapat dijangkau. Periksa koneksi lalu coba lagi.";
+  }
+
+  return message;
+}
 
 export default function AdminLoginPage() {
   const [errorMessage, setErrorMessage] = useState("");
@@ -59,64 +74,32 @@ export default function AdminLoginPage() {
     }
 
     let loginAccepted = false;
+    let timeoutId: number | null = null;
 
     try {
-      const controller = new AbortController();
-      const timeoutId = window.setTimeout(() => controller.abort(), 15000);
-      let response: Response;
-      let payload: LoginApiResponse;
-
-      try {
-        response = await fetch("/api/auth/login", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ email, password }),
-          cache: "no-store",
-          signal: controller.signal,
-        });
-        payload = (await response.json().catch(() => ({}))) as LoginApiResponse;
-      } catch (error) {
-        if (error instanceof DOMException && error.name === "AbortError") {
-          throw new Error(
-            "Permintaan login terlalu lama. Periksa koneksi lalu coba lagi.",
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        timeoutId = window.setTimeout(() => {
+          reject(
+            new Error(
+              "Permintaan login terlalu lama. Periksa koneksi lalu coba lagi.",
+            ),
           );
-        }
-        throw error;
-      } finally {
-        window.clearTimeout(timeoutId);
-      }
+        }, 20000);
+      });
 
-      if (!response.ok) {
-        const message = payload.error ?? `Login gagal (HTTP ${response.status}).`;
-        const isInvalidCredential = message
-          .toLowerCase()
-          .includes("invalid login credentials");
+      const { data, error } = await Promise.race([
+        supabase.auth.signInWithPassword({ email, password }),
+        timeoutPromise,
+      ]);
 
-        setErrorMessage(
-          isInvalidCredential
-            ? "Email atau password salah. Silakan periksa kembali."
-            : message,
-        );
+      if (error) {
+        setErrorMessage(getFriendlyAuthError(error.message));
         return;
       }
 
-      if (!payload.access_token || !payload.refresh_token) {
-        setErrorMessage("Sesi login tidak diterima dari server.");
-        return;
-      }
-
-      const { data: sessionData, error: sessionError } =
-        await supabase.auth.setSession({
-          access_token: payload.access_token,
-          refresh_token: payload.refresh_token,
-        });
-
-      if (sessionError || !sessionData.session) {
+      if (!data.session) {
         setErrorMessage(
-          sessionError?.message ??
-            "Sesi login gagal disimpan di browser. Coba ulangi.",
+          "Login diterima, tetapi Supabase tidak membuat sesi browser.",
         );
         return;
       }
@@ -127,15 +110,19 @@ export default function AdminLoginPage() {
         "Login berhasil. Membuka dashboard… Jika belum berpindah, tekan tautan di bawah.",
       );
 
-      // A full navigation avoids stale Next.js client state on a phone browser.
-      window.location.assign("/admin");
+      // A full replacement avoids stale router state on Android browsers.
+      window.location.replace("/admin");
     } catch (error) {
       setErrorMessage(
         error instanceof Error
-          ? error.message
+          ? getFriendlyAuthError(error.message)
           : "Terjadi kesalahan saat menghubungi Supabase.",
       );
     } finally {
+      if (timeoutId !== null) {
+        window.clearTimeout(timeoutId);
+      }
+
       // Keep the success state visible while the browser navigates.
       if (!loginAccepted) {
         setIsLoading(false);

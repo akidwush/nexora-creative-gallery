@@ -9,6 +9,7 @@ const MAX_INPUT_BYTES = 50 * 1024 * 1024;
 const TARGET_OUTPUT_BYTES = 2.5 * 1024 * 1024;
 const MAX_DIMENSION = 2560;
 const MIN_DIMENSION = 320;
+const MAX_SOURCE_PIXELS = 60_000_000;
 
 export type PreparedGalleryImage = {
   file: File;
@@ -88,6 +89,12 @@ export async function prepareGalleryImage(
     );
   }
 
+  if (width * height > MAX_SOURCE_PIXELS) {
+    throw new Error(
+      "Resolusi gambar terlalu besar untuk diproses aman di HP. Maksimal sekitar 60 megapiksel.",
+    );
+  }
+
   if (sourceFile.type === "image/gif") {
     return {
       file: sourceFile,
@@ -124,8 +131,10 @@ export async function prepareGalleryImage(
     if (blob.size <= TARGET_OUTPUT_BYTES) break;
 
     quality = Math.max(0.58, quality - 0.08);
-    outputWidth = Math.max(MIN_DIMENSION, Math.round(outputWidth * 0.88));
-    outputHeight = Math.max(MIN_DIMENSION, Math.round(outputHeight * 0.88));
+    // Scale both axes by the same factor so portrait, landscape, panorama,
+    // and ultra-tall artwork always keeps its exact original proportion.
+    outputWidth = Math.max(1, Math.round(outputWidth * 0.88));
+    outputHeight = Math.max(1, Math.round(outputHeight * 0.88));
   }
 
   if (!blob) throw new Error("Gambar gagal dioptimalkan.");

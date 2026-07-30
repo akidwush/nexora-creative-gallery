@@ -1,5 +1,3 @@
-@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&display=swap');
-
 :root {
   --ink: #17151b;
   --muted: #77717a;
@@ -21,7 +19,7 @@ body {
   margin: 0;
   background: var(--paper);
   color: var(--ink);
-  font-family: 'Manrope', Arial, sans-serif;
+  font-family: var(--font-geist-sans), Arial, sans-serif;
 }
 
 button,
@@ -47,7 +45,7 @@ a {
 .eyebrow {
   margin: 0;
   color: var(--muted);
-  font-family: 'DM Mono', monospace;
+  font-family: var(--font-geist-mono), monospace;
   font-size: 0.68rem;
   letter-spacing: 0.16em;
   line-height: 1.4;
@@ -98,7 +96,7 @@ a {
 
 .brand small {
   color: var(--muted);
-  font-family: 'DM Mono', monospace;
+  font-family: var(--font-geist-mono), monospace;
   font-size: 0.48rem;
   letter-spacing: 0.12em;
   margin-top: 0.14rem;
@@ -280,7 +278,7 @@ a {
 
 .hero-caption span,
 .hero-caption small {
-  font-family: 'DM Mono', monospace;
+  font-family: var(--font-geist-mono), monospace;
   font-size: 0.58rem;
   letter-spacing: 0.12em;
   opacity: 0.72;
@@ -293,7 +291,7 @@ a {
 
 .hero-number {
   color: rgba(255, 255, 255, 0.7);
-  font-family: 'DM Mono', monospace;
+  font-family: var(--font-geist-mono), monospace;
   font-size: 0.72rem;
   position: absolute;
   right: 8%;
@@ -475,7 +473,7 @@ a {
 .art-category,
 .art-index {
   color: rgba(255, 255, 255, 0.8);
-  font-family: 'DM Mono', monospace;
+  font-family: var(--font-geist-mono), monospace;
   font-size: 0.58rem;
   letter-spacing: 0.12em;
   position: absolute;
@@ -585,7 +583,7 @@ a {
 
 .site-footer {
   display: flex;
-  font-family: 'DM Mono', monospace;
+  font-family: var(--font-geist-mono), monospace;
   font-size: 0.58rem;
   justify-content: space-between;
   letter-spacing: 0.08em;
@@ -676,7 +674,7 @@ a {
   border: 0;
   color: rgba(255, 255, 255, 0.44);
   cursor: pointer;
-  font-family: 'DM Mono', monospace;
+  font-family: var(--font-geist-mono), monospace;
   font-size: 0.58rem;
   margin-top: 1rem;
   pointer-events: auto;
@@ -996,7 +994,7 @@ a {
 
 .gallery-loading {
   color: var(--muted);
-  font-family: "DM Mono", monospace;
+  font-family: var(--font-geist-mono), monospace;
   font-size: 0.62rem;
   letter-spacing: 0.08em;
   margin: 0 0 1rem;
@@ -1238,7 +1236,7 @@ a {
   bottom: 0.85rem;
   color: var(--ink);
   display: inline-flex;
-  font-family: 'DM Mono', monospace;
+  font-family: var(--font-geist-mono), monospace;
   font-size: 0.48rem;
   gap: 0.42rem;
   left: 0.85rem;
@@ -1916,7 +1914,7 @@ section[id] {
 
 .brand-tagline {
   color: var(--violet);
-  font-family: 'DM Mono', monospace;
+  font-family: var(--font-geist-mono), monospace;
   font-size: 0.62rem;
   letter-spacing: 0.14em;
   margin: 1rem 0 0;
@@ -1934,7 +1932,7 @@ section[id] {
   background: rgba(23, 21, 27, 0.07);
   border-radius: 999px;
   display: inline-flex;
-  font-family: 'DM Mono', monospace;
+  font-family: var(--font-geist-mono), monospace;
   font-size: 0.54rem;
   height: 1.25rem;
   justify-content: center;
@@ -1975,7 +1973,7 @@ section[id] {
 .submit-guide li > span {
   color: rgba(23, 21, 27, 0.52);
   flex: 0 0 auto;
-  font-family: 'DM Mono', monospace;
+  font-family: var(--font-geist-mono), monospace;
   font-size: 0.58rem;
   letter-spacing: 0.08em;
   padding-top: 0.15rem;

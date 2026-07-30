@@ -22,8 +22,23 @@ function getSupabaseConfig() {
   return { url, key };
 }
 
+function jsonNoStore(body: Record<string, unknown>, status = 200) {
+  return NextResponse.json(body, {
+    status,
+    headers: {
+      "Cache-Control": "no-store, max-age=0",
+      Pragma: "no-cache",
+    },
+  });
+}
+
 export async function POST(request: Request) {
   try {
+    const contentLength = Number(request.headers.get("content-length") ?? "0");
+    if (Number.isFinite(contentLength) && contentLength > 4096) {
+      return jsonNoStore({ error: "Payload login terlalu besar." }, 413);
+    }
+
     const body = (await request.json()) as {
       email?: unknown;
       password?: unknown;
@@ -32,37 +47,47 @@ export async function POST(request: Request) {
     const password = String(body.password ?? "");
 
     if (!email || !password) {
-      return NextResponse.json(
-        { error: "Email dan password wajib diisi." },
-        { status: 400 },
-      );
+      return jsonNoStore({ error: "Email dan password wajib diisi." }, 400);
+    }
+
+    if (email.length > 254 || password.length > 1024) {
+      return jsonNoStore({ error: "Format kredensial tidak valid." }, 400);
     }
 
     const { url, key } = getSupabaseConfig();
 
     if (!url || !key) {
-      return NextResponse.json(
+      return jsonNoStore(
         {
           error:
             "Environment Supabase belum terbaca di server Vercel. Periksa NEXT_PUBLIC_SUPABASE_URL dan NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY.",
         },
-        { status: 500 },
+        500,
       );
     }
 
-    const response = await fetch(
-      `${url.replace(/\/$/, "")}/auth/v1/token?grant_type=password`,
-      {
-        method: "POST",
-        headers: {
-          apikey: key,
-          Authorization: `Bearer ${key}`,
-          "Content-Type": "application/json",
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000);
+    let response: Response;
+
+    try {
+      response = await fetch(
+        `${url.replace(/\/$/, "")}/auth/v1/token?grant_type=password`,
+        {
+          method: "POST",
+          headers: {
+            apikey: key,
+            Authorization: `Bearer ${key}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ email, password }),
+          cache: "no-store",
+          signal: controller.signal,
         },
-        body: JSON.stringify({ email, password }),
-        cache: "no-store",
-      },
-    );
+      );
+    } finally {
+      clearTimeout(timeoutId);
+    }
 
     const payload = (await response
       .json()
@@ -76,17 +101,14 @@ export async function POST(request: Request) {
         payload.error ??
         `Supabase mengembalikan HTTP ${response.status}.`;
 
-      return NextResponse.json({ error: message }, { status: response.status });
+      return jsonNoStore({ error: message }, response.status);
     }
 
     if (!payload.access_token || !payload.refresh_token) {
-      return NextResponse.json(
-        { error: "Supabase tidak mengirim sesi login." },
-        { status: 502 },
-      );
+      return jsonNoStore({ error: "Supabase tidak mengirim sesi login." }, 502);
     }
 
-    return NextResponse.json({
+    return jsonNoStore({
       access_token: payload.access_token,
       refresh_token: payload.refresh_token,
       expires_in: payload.expires_in,
@@ -94,14 +116,16 @@ export async function POST(request: Request) {
       token_type: payload.token_type,
     });
   } catch (error) {
-    return NextResponse.json(
+    return jsonNoStore(
       {
         error:
-          error instanceof Error
-            ? error.message
+          error instanceof DOMException && error.name === "AbortError"
+            ? "Supabase tidak merespons dalam batas waktu."
+            : error instanceof Error
+              ? error.message
             : "Server gagal memproses login.",
       },
-      { status: 500 },
+      error instanceof DOMException && error.name === "AbortError" ? 504 : 500,
     );
   }
 }

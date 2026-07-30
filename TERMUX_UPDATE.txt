@@ -1,0 +1,15 @@
+NEXORA TOTAL FIX — TERMUX
+
+1. Timpa source dan push:
+
+cd ~/nexora-gallery
+unzip -o ~/storage/downloads/nexora-gallery-total-fix.zip -d .
+git add -A
+git commit -m "fix: apply Nexora gallery total fix"
+git push origin main
+
+2. Setelah push, buka Supabase SQL Editor dan jalankan:
+
+supabase/gallery_setup.sql
+
+Tidak perlu menjalankan localhost di HP. Vercel akan build otomatis dari main.

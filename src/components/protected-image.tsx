@@ -1,5 +1,8 @@
 "use client";
 
+/* This wrapper requires a native image element for drag/context protection. */
+/* eslint-disable @next/next/no-img-element */
+
 import type { ImgHTMLAttributes, SyntheticEvent } from "react";
 import styles from "./protected-image.module.css";
 
@@ -33,7 +36,7 @@ export default function ProtectedImage({
       onContextMenu={preventArtworkAction}
       onDragStart={preventArtworkAction}
       onCopy={preventArtworkAction}
-      aria-label={`${alt ?? "Karya"}. Gambar dilindungi dari unduhan langsung.`}
+      aria-label={`${alt ?? "Karya"}. Gambar diberi watermark dan pembatas interaksi biasa.`}
     >
       <img
         {...imageProps}

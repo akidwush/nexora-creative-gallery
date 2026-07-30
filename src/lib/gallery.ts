@@ -22,7 +22,9 @@ export type GalleryWork = {
   title: string;
   description: string;
   category: string;
+  category_id?: string | null;
   creator_name: string;
+  creator_id?: string | null;
   creator_whatsapp: string | null;
   creator_instagram_url: string | null;
   creator_portfolio_url: string | null;

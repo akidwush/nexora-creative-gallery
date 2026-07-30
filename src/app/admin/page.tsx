@@ -1,5 +1,8 @@
 "use client";
 
+/* Dynamic Supabase artwork keeps its intrinsic ratio for the masonry preview. */
+/* eslint-disable @next/next/no-img-element */
+
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -53,6 +56,30 @@ type WorkStatusFilter =
 const MAX_IMAGE_BYTES = 50 * 1024 * 1024;
 const PAGE_SIZE = 6;
 
+function isMissingSaveWorkRpc(error: { code?: string; message: string }) {
+  const message = error.message.toLowerCase();
+
+  return (
+    error.code === "PGRST202" ||
+    error.code === "42883" ||
+    message.includes("save_gallery_work") &&
+      (message.includes("could not find") || message.includes("does not exist"))
+  );
+}
+
+function createCreatorSlug(name: string) {
+  const readableSlug = slugify(name);
+  if (readableSlug) return readableSlug;
+
+  let hash = 2166136261;
+  for (const character of name.trim().toLowerCase()) {
+    hash ^= character.codePointAt(0) ?? 0;
+    hash = Math.imul(hash, 16777619);
+  }
+
+  return `creator-${(hash >>> 0).toString(36)}`;
+}
+
 export default function AdminDashboardPage() {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -71,7 +98,6 @@ export default function AdminDashboardPage() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [preparedImage, setPreparedImage] =
     useState<PreparedGalleryImage | null>(null);
-  const [previewUrl, setPreviewUrl] = useState("");
   const [editingWorkId, setEditingWorkId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isPreparingImage, setIsPreparingImage] = useState(false);
@@ -115,10 +141,15 @@ export default function AdminDashboardPage() {
   }, [categoryFilter, searchQuery, statusFilter, works]);
 
   const totalPages = Math.max(1, Math.ceil(filteredWorks.length / PAGE_SIZE));
+  const visiblePage = Math.min(currentPage, totalPages);
   const paginatedWorks = useMemo(() => {
-    const startIndex = (currentPage - 1) * PAGE_SIZE;
+    const startIndex = (visiblePage - 1) * PAGE_SIZE;
     return filteredWorks.slice(startIndex, startIndex + PAGE_SIZE);
-  }, [currentPage, filteredWorks]);
+  }, [filteredWorks, visiblePage]);
+  const previewUrl = useMemo(
+    () => (selectedFile ? URL.createObjectURL(selectedFile) : ""),
+    [selectedFile],
+  );
 
   const loadGalleryData = useCallback(async () => {
     const [worksResult, creatorsResult, categoriesResult] = await Promise.all([
@@ -173,6 +204,8 @@ export default function AdminDashboardPage() {
     let active = true;
 
     async function loadDashboard() {
+      let redirecting = false;
+
       try {
         const {
           data: { session },
@@ -182,7 +215,8 @@ export default function AdminDashboardPage() {
         if (sessionError) throw sessionError;
 
         if (!session) {
-          router.replace("/admin/login");
+          redirecting = true;
+          window.location.replace("/admin/login");
           return;
         }
 
@@ -197,13 +231,24 @@ export default function AdminDashboardPage() {
 
         if (!active) return;
 
-        if (
-          profileError ||
-          !profileData ||
-          (profileData.role !== "admin" && profileData.role !== "editor")
-        ) {
-          await supabase.auth.signOut();
-          router.replace("/admin/login");
+        if (profileError) {
+          setErrorMessage(
+            `Sesi login aktif, tetapi profil admin gagal diperiksa: ${profileError.message}. Coba muat ulang halaman.`,
+          );
+          return;
+        }
+
+        if (!profileData) {
+          setErrorMessage(
+            "Akun berhasil login, tetapi belum memiliki baris profil. Tambahkan akun ini ke tabel profiles lalu isi role admin atau editor.",
+          );
+          return;
+        }
+
+        if (profileData.role !== "admin" && profileData.role !== "editor") {
+          setErrorMessage(
+            `Akun berhasil login, tetapi role "${String(profileData.role)}" tidak memiliki akses dashboard. Gunakan role admin atau editor.`,
+          );
           return;
         }
 
@@ -218,7 +263,7 @@ export default function AdminDashboardPage() {
             : "Dashboard gagal dimuat. Coba muat ulang halaman.",
         );
       } finally {
-        if (active) setIsLoading(false);
+        if (active && !redirecting) setIsLoading(false);
       }
     }
 
@@ -242,16 +287,6 @@ export default function AdminDashboardPage() {
   }, [router]);
 
   useEffect(() => {
-    setCurrentPage(1);
-  }, [categoryFilter, searchQuery, statusFilter]);
-
-  useEffect(() => {
-    if (currentPage > totalPages) {
-      setCurrentPage(totalPages);
-    }
-  }, [currentPage, totalPages]);
-
-  useEffect(() => {
     if (!deleteTarget) return;
 
     function handleEscape(event: KeyboardEvent) {
@@ -269,17 +304,12 @@ export default function AdminDashboardPage() {
     };
   }, [deleteTarget, deletingId]);
 
-  useEffect(() => {
-    if (!selectedFile) {
-      setPreviewUrl("");
-      return;
-    }
-
-    const objectUrl = URL.createObjectURL(selectedFile);
-    setPreviewUrl(objectUrl);
-
-    return () => URL.revokeObjectURL(objectUrl);
-  }, [selectedFile]);
+  useEffect(
+    () => () => {
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
+    },
+    [previewUrl],
+  );
 
   function updateForm<Key extends keyof GalleryWorkForm>(
     key: Key,
@@ -303,7 +333,11 @@ export default function AdminDashboardPage() {
 
   function notifyPublicGalleryChanged() {
     const timestamp = String(Date.now());
-    window.localStorage.setItem("nexora-gallery-updated-at", timestamp);
+    try {
+      window.localStorage.setItem("nexora-gallery-updated-at", timestamp);
+    } catch {
+      // Storage can be unavailable in private or hardened mobile browsers.
+    }
     window.dispatchEvent(new Event("nexora-gallery-updated"));
   }
 
@@ -426,8 +460,9 @@ export default function AdminDashboardPage() {
 
     setIsSubmitting(true);
     let uploadedPath = "";
-    let uploadCommitted = false;
+    let databaseCommitted = false;
     let savedWorkId = existingWork?.id ?? "";
+    const warnings: string[] = [];
 
     try {
       let imagePath = existingWork?.image_path ?? "";
@@ -458,17 +493,11 @@ export default function AdminDashboardPage() {
 
       const creatorPayload = {
         name: creatorName,
-        slug: slugify(creatorName) || `creator-${Date.now()}`,
+        slug: createCreatorSlug(creatorName),
         whatsapp: normalizeWhatsAppNumber(form.creatorWhatsapp) || null,
         instagram_url: normalizeOptionalUrl(form.creatorInstagramUrl),
         portfolio_url: normalizeOptionalUrl(form.creatorPortfolioUrl),
       };
-
-      const { error: creatorError } = await supabase
-        .from("gallery_creators")
-        .upsert(creatorPayload, { onConflict: "slug" });
-
-      if (creatorError) throw creatorError;
 
       const workPayload = {
         title,
@@ -484,77 +513,153 @@ export default function AdminDashboardPage() {
         is_featured: form.isFeatured,
         is_published: form.isPublished,
         is_protected: form.isProtected,
-        created_by: sessionUserId,
         updated_at: new Date().toISOString(),
       };
 
-      if (existingWork) {
-        const { error: updateError } = await supabase
-          .from("gallery_works")
-          .update(workPayload)
-          .eq("id", existingWork.id);
+      const { data: rpcSavedWorkId, error: rpcError } = await supabase.rpc(
+        "save_gallery_work",
+        {
+          p_work_id: existingWork?.id ?? null,
+          p_title: workPayload.title,
+          p_description: workPayload.description,
+          p_category: workPayload.category,
+          p_creator_name: creatorPayload.name,
+          p_creator_slug: creatorPayload.slug,
+          p_creator_whatsapp: creatorPayload.whatsapp,
+          p_creator_instagram_url: creatorPayload.instagram_url,
+          p_creator_portfolio_url: creatorPayload.portfolio_url,
+          p_image_url: workPayload.image_url,
+          p_image_path: workPayload.image_path,
+          p_year: workPayload.year,
+          p_is_featured: workPayload.is_featured,
+          p_is_published: workPayload.is_published,
+          p_is_protected: workPayload.is_protected,
+        },
+      );
 
-        if (updateError) throw updateError;
-      } else {
-        const { data: insertedWork, error: insertError } = await supabase
-          .from("gallery_works")
-          .insert(workPayload)
-          .select("id")
-          .single();
+      if (rpcError && !isMissingSaveWorkRpc(rpcError)) {
+        throw rpcError;
+      }
 
-        if (insertError) throw insertError;
-        if (!insertedWork?.id) {
-          throw new Error("ID karya baru tidak diterima dari database.");
+      if (!rpcError) {
+        if (typeof rpcSavedWorkId !== "string" || !rpcSavedWorkId) {
+          throw new Error("ID karya tidak diterima dari transaksi database.");
         }
-        savedWorkId = insertedWork.id;
+
+        savedWorkId = rpcSavedWorkId;
+        databaseCommitted = true;
+      } else {
+        // Backward-compatible path while the updated SQL migration has not
+        // been run yet. The commit flag is set immediately after the work is
+        // saved so a later refresh failure can never delete its new image.
+        const { error: creatorError } = await supabase
+          .from("gallery_creators")
+          .upsert(creatorPayload, { onConflict: "slug" });
+
+        if (creatorError) throw creatorError;
+
+        if (existingWork) {
+          const { data: updatedWork, error: updateError } = await supabase
+            .from("gallery_works")
+            .update(workPayload)
+            .eq("id", existingWork.id)
+            .select("id")
+            .maybeSingle();
+
+          if (updateError) throw updateError;
+          if (!updatedWork?.id) {
+            throw new Error("Karya yang akan diedit tidak ditemukan.");
+          }
+          savedWorkId = updatedWork.id;
+        } else {
+          const { data: insertedWork, error: insertError } = await supabase
+            .from("gallery_works")
+            .insert({ ...workPayload, created_by: sessionUserId })
+            .select("id")
+            .single();
+
+          if (insertError) throw insertError;
+          if (!insertedWork?.id) {
+            throw new Error("ID karya baru tidak diterima dari database.");
+          }
+          savedWorkId = insertedWork.id;
+        }
+
+        databaseCommitted = true;
+
+        if (form.isFeatured && savedWorkId) {
+          const { error: clearFeaturedError } = await supabase
+            .from("gallery_works")
+            .update({
+              is_featured: false,
+              updated_at: new Date().toISOString(),
+            })
+            .eq("is_featured", true)
+            .neq("id", savedWorkId);
+
+          if (clearFeaturedError) {
+            warnings.push(
+              `karya tersimpan, tetapi unggulan lama belum dinonaktifkan (${clearFeaturedError.message})`,
+            );
+          }
+        }
       }
-
-      if (form.isFeatured && savedWorkId) {
-        const { error: clearFeaturedError } = await supabase
-          .from("gallery_works")
-          .update({
-            is_featured: false,
-            updated_at: new Date().toISOString(),
-          })
-          .eq("is_featured", true)
-          .neq("id", savedWorkId);
-
-        if (clearFeaturedError) throw clearFeaturedError;
-      }
-
-      uploadCommitted = true;
 
       if (
         selectedFile &&
         existingWork?.image_path &&
         existingWork.image_path !== uploadedPath
       ) {
-        await supabase.storage
+        const { error: oldImageDeleteError } = await supabase.storage
           .from(GALLERY_BUCKET)
           .remove([existingWork.image_path]);
+
+        if (oldImageDeleteError) {
+          warnings.push(
+            `gambar lama belum terhapus dari Storage (${oldImageDeleteError.message})`,
+          );
+        }
       }
 
-      await loadGalleryData();
+      try {
+        await loadGalleryData();
+      } catch (refreshError) {
+        warnings.push(
+          refreshError instanceof Error
+            ? `dashboard belum termuat ulang (${refreshError.message})`
+            : "dashboard belum termuat ulang",
+        );
+      }
+
       notifyPublicGalleryChanged();
       resetForm();
-      const savedMessage = existingWork
-        ? "Karya berhasil diperbarui."
-        : "Karya berhasil diunggah dan langsung masuk ke galeri.";
+      const savedMessage = form.isPublished
+        ? existingWork
+          ? "Karya berhasil diperbarui dan dipublikasikan."
+          : "Karya berhasil diunggah dan dipublikasikan."
+        : existingWork
+          ? "Karya berhasil diperbarui sebagai draft."
+          : "Karya berhasil disimpan sebagai draft.";
+      const optimizationMessage = optimizationSummary
+        ? ` Hasil optimasi: ${optimizationSummary}.`
+        : "";
+      const warningMessage =
+        warnings.length > 0 ? ` Catatan: ${warnings.join("; ")}.` : "";
 
       setSuccessMessage(
-        optimizationSummary
-          ? `${savedMessage} Hasil optimasi: ${optimizationSummary}.`
-          : savedMessage,
+        `${savedMessage}${optimizationMessage}${warningMessage}`,
       );
     } catch (error) {
-      if (uploadedPath && !uploadCommitted) {
+      if (uploadedPath && !databaseCommitted) {
         await supabase.storage.from(GALLERY_BUCKET).remove([uploadedPath]);
       }
 
       setErrorMessage(
-        error instanceof Error
-          ? `Gagal menyimpan karya: ${error.message}`
-          : "Gagal menyimpan karya.",
+        databaseCommitted
+          ? "Karya sudah tersimpan, tetapi proses setelah penyimpanan mengalami kendala. Muat ulang dashboard untuk memastikan hasilnya."
+          : error instanceof Error
+            ? `Gagal menyimpan karya: ${error.message}`
+            : "Gagal menyimpan karya.",
       );
     } finally {
       setIsSubmitting(false);
@@ -646,6 +751,31 @@ export default function AdminDashboardPage() {
       <main className={styles.loadingPage}>
         <span className={styles.loadingMark}>N</span>
         <p>Menyiapkan dashboard...</p>
+      </main>
+    );
+  }
+
+  if (!profile) {
+    return (
+      <main className={styles.accessPage}>
+        <section className={styles.accessCard}>
+          <span className={styles.loadingMark}>N</span>
+          <p>AKSES DASHBOARD</p>
+          <h1>Profil admin belum dapat diverifikasi.</h1>
+          <div className={styles.error} role="alert">
+            {errorMessage ||
+              "Sesi tersedia, tetapi data profil belum dapat dibaca."}
+          </div>
+          <div className={styles.accessActions}>
+            <button type="button" onClick={() => window.location.reload()}>
+              Coba lagi
+            </button>
+            <button type="button" onClick={handleLogout}>
+              Keluar dari akun
+            </button>
+          </div>
+          <Link href="/">← Kembali ke galeri</Link>
+        </section>
       </main>
     );
   }
@@ -940,8 +1070,8 @@ export default function AdminDashboardPage() {
                   }
                 />
                 <span>
-                  <strong>Lindungi karya</strong>
-                  <small>Blokir unduhan biasa, salin, long-press, dan tarik gambar.</small>
+                  <strong>Watermark karya</strong>
+                  <small>Tambahkan watermark serta blokir long-press dan tarik gambar biasa.</small>
                 </span>
               </label>
             </div>
@@ -978,7 +1108,10 @@ export default function AdminDashboardPage() {
                   placeholder="Cari judul atau kreator..."
                   type="search"
                   value={searchQuery}
-                  onChange={(event) => setSearchQuery(event.target.value)}
+                  onChange={(event) => {
+                    setSearchQuery(event.target.value);
+                    setCurrentPage(1);
+                  }}
                 />
               </label>
 
@@ -987,7 +1120,10 @@ export default function AdminDashboardPage() {
                   <span className={styles.srOnly}>Filter kategori</span>
                   <select
                     value={categoryFilter}
-                    onChange={(event) => setCategoryFilter(event.target.value)}
+                    onChange={(event) => {
+                      setCategoryFilter(event.target.value);
+                      setCurrentPage(1);
+                    }}
                   >
                     <option value="all">Semua kategori</option>
                     {categories.map((category) => (
@@ -1002,9 +1138,10 @@ export default function AdminDashboardPage() {
                   <span className={styles.srOnly}>Filter status</span>
                   <select
                     value={statusFilter}
-                    onChange={(event) =>
-                      setStatusFilter(event.target.value as WorkStatusFilter)
-                    }
+                    onChange={(event) => {
+                      setStatusFilter(event.target.value as WorkStatusFilter);
+                      setCurrentPage(1);
+                    }}
                   >
                     <option value="all">Semua status</option>
                     <option value="published">Publik</option>
@@ -1083,22 +1220,22 @@ export default function AdminDashboardPage() {
                     className={styles.pagination}
                   >
                     <button
-                      disabled={currentPage === 1}
+                      disabled={visiblePage === 1}
                       type="button"
                       onClick={() =>
-                        setCurrentPage((page) => Math.max(1, page - 1))
+                        setCurrentPage(Math.max(1, visiblePage - 1))
                       }
                     >
                       Sebelumnya
                     </button>
                     <span>
-                      {currentPage} / {totalPages}
+                      {visiblePage} / {totalPages}
                     </span>
                     <button
-                      disabled={currentPage === totalPages}
+                      disabled={visiblePage === totalPages}
                       type="button"
                       onClick={() =>
-                        setCurrentPage((page) => Math.min(totalPages, page + 1))
+                        setCurrentPage(Math.min(totalPages, visiblePage + 1))
                       }
                     >
                       Berikutnya
