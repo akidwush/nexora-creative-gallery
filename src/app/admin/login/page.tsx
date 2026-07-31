@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
 import Link from "next/link";
+import NexoraLogoMark from "@/components/nexora-logo-mark";
 import { supabase } from "@/lib/supabase";
 import styles from "./login.module.css";
 
@@ -140,7 +141,7 @@ export default function AdminLoginPage() {
       </Link>
 
       <section className={styles.card}>
-        <div className={styles.brandMark}>N</div>
+        <NexoraLogoMark className={styles.brandMark} />
         <p className={styles.eyebrow}>NEXORA CREATIVE GALLERY</p>
         <h1>Masuk ke dashboard.</h1>
         <p className={styles.description}>

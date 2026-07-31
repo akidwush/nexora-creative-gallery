@@ -1,8 +1,5 @@
 "use client";
 
-/* Dynamic Supabase images keep their intrinsic ratio in the masonry layout. */
-/* eslint-disable @next/next/no-img-element */
-
 import { useEffect, useMemo, useRef, useState } from "react";
 import type {
   CSSProperties,
@@ -10,6 +7,7 @@ import type {
   PointerEvent as ReactPointerEvent,
 } from "react";
 import { useRouter } from "next/navigation";
+import NexoraLogoMark from "@/components/nexora-logo-mark";
 import ProtectedImage from "@/components/protected-image";
 import { getWhatsAppUrl } from "@/lib/gallery";
 import type { GalleryCategory, GalleryWork } from "@/lib/gallery";
@@ -35,22 +33,6 @@ type Work = {
 };
 
 const BRAND_TAGLINE = "Create. Inspire. Connect.";
-
-function readLocalPreference(key: string) {
-  try {
-    return window.localStorage.getItem(key);
-  } catch {
-    return null;
-  }
-}
-
-function writeLocalPreference(key: string, value: string) {
-  try {
-    window.localStorage.setItem(key, value);
-  } catch {
-    // The gallery remains functional when browser storage is unavailable.
-  }
-}
 
 function mapDatabaseWork(work: GalleryWork): Work {
   return {
@@ -102,12 +84,12 @@ export default function Home() {
     prefersReducedMotionRef.current = motionQuery.matches;
 
     const initializationFrame = window.requestAnimationFrame(() => {
-      const hasVisited = readLocalPreference("hasSeenIntro");
+      const hasVisited = window.localStorage.getItem("hasSeenIntro");
       if (hasVisited || motionQuery.matches) {
         setIntroVisible(false);
       } else {
         introAutoTimerRef.current = window.setTimeout(() => {
-          writeLocalPreference("hasSeenIntro", "true");
+          window.localStorage.setItem("hasSeenIntro", "true");
           setIntroLeaving(true);
           introExitTimerRef.current = window.setTimeout(() => {
             setIntroVisible(false);
@@ -115,7 +97,7 @@ export default function Home() {
         }, 1350);
       }
 
-      const hintSeen = readLocalPreference(
+      const hintSeen = window.localStorage.getItem(
         "nexora-work-longpress-hint-seen",
       );
       setShowLongPressHint(!hintSeen);
@@ -277,13 +259,20 @@ export default function Home() {
     return ["Semua", ...orderedCategories, ...missingCategories];
   }, [categories, categoryCounts]);
 
-  const resolvedActiveCategory =
-    activeCategory === "Semua" || visibleCategories.includes(activeCategory)
-      ? activeCategory
-      : "Semua";
+  useEffect(() => {
+    if (
+      activeCategory !== "Semua" &&
+      !visibleCategories.includes(activeCategory)
+    ) {
+      const resetFrame = window.requestAnimationFrame(() => {
+        setActiveCategory("Semua");
+      });
+      return () => window.cancelAnimationFrame(resetFrame);
+    }
+  }, [activeCategory, visibleCategories]);
 
   const enterGallery = (instant = false) => {
-    writeLocalPreference("hasSeenIntro", "true");
+    window.localStorage.setItem("hasSeenIntro", "true");
 
     if (introAutoTimerRef.current !== null) {
       window.clearTimeout(introAutoTimerRef.current);
@@ -307,7 +296,7 @@ export default function Home() {
   };
 
   const changeCategory = (category: string) => {
-    if (category === resolvedActiveCategory && pendingCategory === null) return;
+    if (category === activeCategory && pendingCategory === null) return;
     if (category === pendingCategory) return;
 
     const requestId = ++filterRequestRef.current;
@@ -387,17 +376,11 @@ export default function Home() {
           });
         });
       })
-      .catch(() => {
-        if (requestId !== filterRequestRef.current) return;
-        exitAnimation.cancel();
-        filterAnimationRef.current = null;
-        setActiveCategory(category);
-        setPendingCategory(null);
-      });
+      .catch(() => undefined);
   };
 
   const dismissLongPressHint = () => {
-    writeLocalPreference("nexora-work-longpress-hint-seen", "true");
+    window.localStorage.setItem("nexora-work-longpress-hint-seen", "true");
     setShowLongPressHint(false);
   };
 
@@ -532,8 +515,7 @@ export default function Home() {
 
     return works.filter((work) => {
       const matchesCategory =
-        resolvedActiveCategory === "Semua" ||
-        work.category === resolvedActiveCategory;
+        activeCategory === "Semua" || work.category === activeCategory;
       const matchesQuery =
         !normalizedQuery ||
         `${work.title} ${work.creator} ${work.category}`
@@ -542,9 +524,9 @@ export default function Home() {
 
       return matchesCategory && matchesQuery;
     });
-  }, [query, resolvedActiveCategory, works]);
+  }, [activeCategory, query, works]);
 
-  const selectedCategory = pendingCategory ?? resolvedActiveCategory;
+  const selectedCategory = pendingCategory ?? activeCategory;
 
   const featuredWork = works.find((work) => work.isFeatured) ?? null;
   const selectedWhatsAppUrl = selectedWork
@@ -562,9 +544,7 @@ export default function Home() {
         >
           <div className="intro-glow intro-glow-one" />
           <div className="intro-glow intro-glow-two" />
-          <div className="intro-mark" aria-hidden="true">
-            N
-          </div>
+          <NexoraLogoMark className="intro-mark" />
           <p className="eyebrow intro-eyebrow">NEXORA CREATIVE GALLERY</p>
           <h1>{BRAND_TAGLINE}</h1>
           <p className="intro-copy">Galeri resmi karya pemenang Nexora.</p>
@@ -580,7 +560,7 @@ export default function Home() {
 
       <header className="site-header reveal-item reveal-fast" data-reveal>
         <a className="brand" href="#top" aria-label="Nexora Creative Gallery">
-          <span className="brand-symbol">N</span>
+          <NexoraLogoMark className="brand-symbol" />
           <span>
             <strong>NEXORA</strong>
             <small>CREATIVE GALLERY</small>
@@ -934,7 +914,7 @@ export default function Home() {
               ref={modalCloseRef}
               className="modal-close"
               type="button"
-              aria-label="Tutup pratinjau karya"
+              aria-label="Tutup ringkasan karya"
               onClick={() => setSelectedWork(null)}
             >
               ×
@@ -973,6 +953,10 @@ export default function Home() {
                   ))}
                 </span>
               )}
+              <span className="quick-preview-label">
+                <span aria-hidden="true" />
+                Ringkasan 0,6 detik
+              </span>
             </div>
 
             <div className="modal-content">

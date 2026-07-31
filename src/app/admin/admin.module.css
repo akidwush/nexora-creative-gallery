@@ -27,14 +27,12 @@
 
 .brand > span {
   align-items: center;
-  background: #17151b;
-  border-radius: 50%;
-  color: #d8ff65;
+  background: #ffffff;
+  border-radius: 0.65rem;
   display: flex;
-  font-weight: 900;
   height: 2.2rem;
   justify-content: center;
-  transform: rotate(-8deg);
+  overflow: hidden;
   width: 2.2rem;
 }
 
@@ -557,15 +555,12 @@
 
 .loadingMark {
   align-items: center;
-  background: #d8ff65;
-  border-radius: 50%;
-  color: #17151b;
+  background: #ffffff;
+  border-radius: 1.15rem;
   display: flex;
-  font-size: 1.6rem;
-  font-weight: 900;
   height: 4rem;
   justify-content: center;
-  transform: rotate(-8deg);
+  overflow: hidden;
   width: 4rem;
 }
 

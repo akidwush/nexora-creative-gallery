@@ -1,7 +1,6 @@
 "use client";
 
 /* Dynamic Supabase artwork keeps its intrinsic ratio for the masonry preview. */
-/* eslint-disable @next/next/no-img-element */
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -13,6 +12,7 @@ import {
   useState,
 } from "react";
 import type { FormEvent } from "react";
+import NexoraLogoMark from "@/components/nexora-logo-mark";
 import { supabase } from "@/lib/supabase";
 import {
   createSafeFileName,
@@ -749,7 +749,7 @@ export default function AdminDashboardPage() {
   if (isLoading) {
     return (
       <main className={styles.loadingPage}>
-        <span className={styles.loadingMark}>N</span>
+        <NexoraLogoMark className={styles.loadingMark} />
         <p>Menyiapkan dashboard...</p>
       </main>
     );
@@ -759,7 +759,7 @@ export default function AdminDashboardPage() {
     return (
       <main className={styles.accessPage}>
         <section className={styles.accessCard}>
-          <span className={styles.loadingMark}>N</span>
+          <NexoraLogoMark className={styles.loadingMark} />
           <p>AKSES DASHBOARD</p>
           <h1>Profil admin belum dapat diverifikasi.</h1>
           <div className={styles.error} role="alert">
@@ -784,7 +784,7 @@ export default function AdminDashboardPage() {
     <main className={styles.page}>
       <header className={styles.header}>
         <Link className={styles.brand} href="/">
-          <span>N</span>
+          <NexoraLogoMark />
           <div>
             <strong>NEXORA</strong>
             <small>ADMIN GALLERY</small>

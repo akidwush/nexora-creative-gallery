@@ -12,30 +12,14 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-function getMetadataBase() {
-  const configuredUrl =
-    process.env.NEXT_PUBLIC_SITE_URL ??
-    "https://nexora-creative-gallery.vercel.app";
-
-  try {
-    return new URL(configuredUrl);
-  } catch {
-    return new URL("https://nexora-creative-gallery.vercel.app");
-  }
-}
-
 export const metadata: Metadata = {
-  metadataBase: getMetadataBase(),
   title: "Nexora Creative Gallery",
   description:
     "Galeri resmi karya pemenang event dan challenge Nexora.",
-  openGraph: {
-    type: "website",
-    locale: "id_ID",
-    siteName: "Nexora Creative Gallery",
-    title: "Nexora Creative Gallery",
-    description:
-      "Galeri resmi karya pemenang event dan challenge Nexora.",
+  icons: {
+    icon: [{ url: "/nexora-logo-icon.jpg", type: "image/jpeg" }],
+    shortcut: ["/nexora-logo-icon.jpg"],
+    apple: [{ url: "/nexora-logo-icon.jpg", type: "image/jpeg" }],
   },
 };
 

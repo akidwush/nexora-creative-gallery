@@ -72,16 +72,13 @@
 
 .brandMark {
   align-items: center;
-  background: #d8ff65;
-  border-radius: 50%;
-  color: #17151b;
+  background: #ffffff;
+  border-radius: 0.8rem;
   display: flex;
-  font-size: 1.15rem;
-  font-weight: 900;
   height: 2.8rem;
   justify-content: center;
   margin-bottom: 1.7rem;
-  transform: rotate(-8deg);
+  overflow: hidden;
   width: 2.8rem;
 }
 
