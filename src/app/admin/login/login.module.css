@@ -33,11 +33,13 @@
 }
 
 .glowOne {
+  animation: loginGlowPulse 7s 400ms ease-in-out infinite alternate;
   left: -28%;
   top: -38%;
 }
 
 .glowTwo {
+  animation: loginGlowPulse 9s 1200ms ease-in-out infinite alternate-reverse;
   bottom: -45%;
   right: -30%;
   transform: scale(1.2);
@@ -50,7 +52,8 @@
   position: absolute;
   text-decoration: none;
   top: clamp(1.2rem, 4vw, 3rem);
-  transition: color 180ms ease;
+  animation: loginFadeDown 700ms 320ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  transition: color 320ms ease;
   z-index: 2;
 }
 
@@ -59,6 +62,7 @@
 }
 
 .card {
+  animation: loginCardIn 950ms 180ms cubic-bezier(0.22, 1, 0.36, 1) both;
   background: rgba(26, 23, 32, 0.88);
   border: 1px solid rgba(255, 255, 255, 0.11);
   border-radius: 1.5rem;
@@ -72,6 +76,7 @@
 
 .brandMark {
   align-items: center;
+  animation: loginMarkIn 850ms 420ms cubic-bezier(0.22, 1, 0.36, 1) both;
   background: #ffffff;
   border-radius: 0.8rem;
   display: flex;
@@ -132,8 +137,8 @@
   outline: none;
   padding: 0.95rem 1rem;
   transition:
-    border-color 180ms ease,
-    background 180ms ease;
+    border-color 320ms ease,
+    background 320ms ease;
   width: 100%;
 }
 
@@ -160,6 +165,14 @@
   margin-top: 0.25rem;
   min-height: 3rem;
   padding: 0.85rem 1.2rem;
+  transition:
+    background 320ms ease,
+    opacity 320ms ease,
+    transform 320ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.form button:not(:disabled):active {
+  transform: scale(0.98);
 }
 
 .form button:disabled {
@@ -224,6 +237,48 @@
   text-align: center;
 }
 
+@keyframes loginFadeDown {
+  from {
+    opacity: 0;
+    transform: translate3d(0, -10px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes loginCardIn {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 24px, 0) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@keyframes loginMarkIn {
+  from {
+    opacity: 0;
+    transform: rotate(-10deg) scale(0.76);
+  }
+  to {
+    opacity: 1;
+    transform: rotate(0) scale(1);
+  }
+}
+
+@keyframes loginGlowPulse {
+  from {
+    opacity: 0.55;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
 @media (max-width: 520px) {
   .page {
     align-items: flex-start;
@@ -232,5 +287,15 @@
 
   .card {
     border-radius: 1.2rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .backLink,
+  .card,
+  .brandMark,
+  .glowOne,
+  .glowTwo {
+    animation: none !important;
   }
 }

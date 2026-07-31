@@ -33,6 +33,7 @@ type Work = {
 };
 
 const BRAND_TAGLINE = "Create. Inspire. Connect.";
+const INTRO_STORAGE_KEY = "nexora-intro-motion-v2-seen";
 
 function mapDatabaseWork(work: GalleryWork): Work {
   return {
@@ -84,17 +85,17 @@ export default function Home() {
     prefersReducedMotionRef.current = motionQuery.matches;
 
     const initializationFrame = window.requestAnimationFrame(() => {
-      const hasVisited = window.localStorage.getItem("hasSeenIntro");
+      const hasVisited = window.localStorage.getItem(INTRO_STORAGE_KEY);
       if (hasVisited || motionQuery.matches) {
         setIntroVisible(false);
       } else {
         introAutoTimerRef.current = window.setTimeout(() => {
-          window.localStorage.setItem("hasSeenIntro", "true");
+          window.localStorage.setItem(INTRO_STORAGE_KEY, "true");
           setIntroLeaving(true);
           introExitTimerRef.current = window.setTimeout(() => {
             setIntroVisible(false);
-          }, 360);
-        }, 1350);
+          }, 650);
+        }, 3000);
       }
 
       const hintSeen = window.localStorage.getItem(
@@ -272,7 +273,7 @@ export default function Home() {
   }, [activeCategory, visibleCategories]);
 
   const enterGallery = (instant = false) => {
-    window.localStorage.setItem("hasSeenIntro", "true");
+    window.localStorage.setItem(INTRO_STORAGE_KEY, "true");
 
     if (introAutoTimerRef.current !== null) {
       window.clearTimeout(introAutoTimerRef.current);
@@ -292,7 +293,7 @@ export default function Home() {
     setIntroLeaving(true);
     introExitTimerRef.current = window.setTimeout(() => {
       setIntroVisible(false);
-    }, 360);
+    }, 650);
   };
 
   const changeCategory = (category: string) => {
@@ -325,7 +326,7 @@ export default function Home() {
         { opacity: 0, transform: "translate3d(0, 5px, 0) scale(0.985)" },
       ],
       {
-        duration: 120,
+        duration: 240,
         easing: "cubic-bezier(0.4, 0, 1, 1)",
         fill: "forwards",
       },
@@ -358,7 +359,7 @@ export default function Home() {
                 },
               ],
               {
-                duration: 220,
+                duration: 480,
                 easing: "cubic-bezier(0.22, 1, 0.36, 1)",
               },
             );
@@ -750,8 +751,8 @@ export default function Home() {
               aria-label={`Buka karya ${work.title} oleh ${work.creator}`}
               style={
                 {
-                  "--reveal-delay": `${Math.min(index, 9) * 55}ms`,
-                  "--filter-delay": `${Math.min(index, 6) * 18}ms`,
+                  "--reveal-delay": `${Math.min(index, 9) * 110}ms`,
+                  "--filter-delay": `${Math.min(index, 6) * 40}ms`,
                 } as CSSProperties
               }
               onClick={(event) => handleWorkClick(work, event)}
@@ -953,10 +954,6 @@ export default function Home() {
                   ))}
                 </span>
               )}
-              <span className="quick-preview-label">
-                <span aria-hidden="true" />
-                Ringkasan 0,6 detik
-              </span>
             </div>
 
             <div className="modal-content">

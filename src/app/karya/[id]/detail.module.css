@@ -117,7 +117,7 @@
   font-size: 0.7rem;
   gap: 0.4rem;
   margin-top: 0.9rem;
-  transition: color 180ms ease;
+  transition: color 320ms ease;
 }
 
 .fullImageLink:hover {
@@ -271,7 +271,7 @@
   justify-content: center;
   min-height: 46px;
   padding: 0.8rem 1rem;
-  transition: transform 180ms ease, background 180ms ease, border-color 180ms ease;
+  transition: transform 320ms ease, background 320ms ease, border-color 320ms ease;
 }
 
 .primaryAction {
@@ -453,7 +453,7 @@
 }
 
 .loader {
-  animation: spin 900ms linear infinite;
+  animation: spin 1400ms linear infinite;
   border: 2px solid rgba(23, 21, 27, 0.12);
   border-top-color: #6951d9;
   border-radius: 50%;
@@ -661,19 +661,19 @@
 /* Animasi masuk halaman detail tetap dipertahankan. */
 @media (prefers-reduced-motion: no-preference) {
   .header {
-    animation: detailHeaderIn 480ms cubic-bezier(0.22, 1, 0.36, 1) both;
+    animation: detailHeaderIn 750ms 100ms cubic-bezier(0.22, 1, 0.36, 1) both;
   }
 
   .imagePanel {
-    animation: detailArtworkIn 720ms 80ms cubic-bezier(0.22, 1, 0.36, 1) both;
+    animation: detailArtworkIn 950ms 220ms cubic-bezier(0.22, 1, 0.36, 1) both;
   }
 
   .contentPanel {
-    animation: detailContentIn 680ms 160ms cubic-bezier(0.22, 1, 0.36, 1) both;
+    animation: detailContentIn 900ms 420ms cubic-bezier(0.22, 1, 0.36, 1) both;
   }
 
   .relatedSection {
-    animation: detailContentIn 620ms 260ms cubic-bezier(0.22, 1, 0.36, 1) both;
+    animation: detailContentIn 850ms 600ms cubic-bezier(0.22, 1, 0.36, 1) both;
   }
 }
 
@@ -838,31 +838,31 @@
 
 /* V5 FINAL — lightweight entry and micro-interactions for work detail */
 .header {
-  animation: detail-fade-down 420ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: detail-fade-down 750ms 100ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .imagePanel {
-  animation: detail-rise 620ms 70ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: detail-rise 950ms 220ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .contentPanel {
-  animation: detail-rise 620ms 150ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: detail-rise 900ms 420ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .relatedSection {
-  animation: detail-rise 620ms 180ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: detail-rise 850ms 600ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .relatedCard {
-  animation: detail-card-in 520ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: detail-card-in 720ms 120ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .relatedCard:nth-child(2) {
-  animation-delay: 70ms;
+  animation-delay: 280ms;
 }
 
 .relatedCard:nth-child(3) {
-  animation-delay: 140ms;
+  animation-delay: 440ms;
 }
 
 .backButton span,
@@ -870,7 +870,7 @@
 .primaryAction span,
 .secondaryAction span {
   display: inline-block;
-  transition: transform 240ms cubic-bezier(0.22, 1, 0.36, 1);
+  transition: transform 380ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 @media (hover: hover) and (pointer: fine) {
@@ -892,8 +892,8 @@
 
 .relatedImage {
   transition:
-    transform 260ms cubic-bezier(0.22, 1, 0.36, 1),
-    box-shadow 260ms ease-out;
+    transform 420ms cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 420ms ease-out;
 }
 
 @keyframes detail-fade-down {
