@@ -995,21 +995,6 @@ export default function Home() {
                 {selectedWork.description || "Deskripsi karya belum ditambahkan."}
               </p>
 
-              <div className="congrats-note" role="status">
-                <span className="congrats-note-icon" aria-hidden="true">
-                  ✦
-                </span>
-                <div>
-                  <p>
-                    {selectedWork.isFeatured
-                      ? "SELAMAT! KARYA UNGGULAN"
-                      : "SELAMAT! KARYA INI MASUK GALERI"}
-                  </p>
-                  <strong>CONGRATS · SUGOI!</strong>
-                  <span>Resmi tampil di Nexora Creative Gallery.</span>
-                </div>
-              </div>
-
               <div className="modal-actions">
                 {!selectedWork.id.startsWith("sample-") && (
                   <button
