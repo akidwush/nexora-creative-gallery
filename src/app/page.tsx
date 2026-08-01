@@ -941,21 +941,32 @@ export default function Home() {
                     }
               }
             >
-              {selectedWork.imageUrl &&
-                (selectedWork.isProtected ? (
-                  <ProtectedImage
-                    imageClassName="work-image"
-                    src={selectedWork.imageUrl}
-                    alt={selectedWork.title}
-                  />
-                ) : (
+              {selectedWork.imageUrl && (
+                <>
                   <img
-                    className="work-image"
-                    src={selectedWork.imageUrl}
-                    alt={selectedWork.title}
+                    aria-hidden="true"
+                    alt=""
+                    className="modal-art-backdrop-image"
+                    decoding="async"
                     draggable={false}
+                    src={selectedWork.imageUrl}
                   />
-                ))}
+                  {selectedWork.isProtected ? (
+                    <ProtectedImage
+                      imageClassName="work-image"
+                      src={selectedWork.imageUrl}
+                      alt={selectedWork.title}
+                    />
+                  ) : (
+                    <img
+                      className="work-image"
+                      src={selectedWork.imageUrl}
+                      alt={selectedWork.title}
+                      draggable={false}
+                    />
+                  )}
+                </>
+              )}
               {!selectedWork.imageUrl && (
                 <span className="art-label" aria-hidden="true">
                   {selectedWork.label.split("\n").map((line) => (

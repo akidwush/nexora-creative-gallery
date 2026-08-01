@@ -2205,3 +2205,56 @@ section[id] {
     font-size: 0.72rem;
   }
 }
+
+/* V6.1 — Fill portrait artwork side space without cropping the original. */
+.modal-art-backdrop-image {
+  filter: blur(18px) brightness(0.5) saturate(1.05);
+  height: 100%;
+  inset: 0;
+  object-fit: cover;
+  opacity: 0.92;
+  pointer-events: none;
+  position: absolute;
+  transform: scale(1.14);
+  user-select: none;
+  width: 100%;
+  z-index: 0;
+}
+
+.modal-art.has-image::before {
+  background:
+    linear-gradient(
+      90deg,
+      rgba(23, 21, 27, 0.24),
+      transparent 34%,
+      transparent 66%,
+      rgba(23, 21, 27, 0.24)
+    ),
+    linear-gradient(
+      180deg,
+      rgba(23, 21, 27, 0.08),
+      rgba(23, 21, 27, 0.18)
+    );
+  content: "";
+  inset: 0;
+  pointer-events: none;
+  position: absolute;
+  z-index: 1;
+}
+
+.modal-art.has-image > .work-image,
+.modal-art.has-image > [data-protected-artwork="true"] {
+  position: relative;
+  z-index: 2;
+}
+
+.modal-art.has-image::after {
+  z-index: 3;
+}
+
+@media (max-width: 680px) {
+  .modal-art-backdrop-image {
+    filter: blur(14px) brightness(0.52) saturate(1.02);
+    transform: scale(1.12);
+  }
+}
