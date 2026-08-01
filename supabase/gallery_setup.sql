@@ -123,6 +123,27 @@ create table if not exists public.gallery_works (
     )
 );
 
+create table if not exists public.nexora_social_links (
+  id uuid primary key default gen_random_uuid(),
+  platform text not null default 'other',
+  label text not null,
+  url text not null,
+  sort_order integer not null default 100,
+  is_active boolean not null default true,
+  created_at timestamptz not null default timezone('utc', now()),
+  updated_at timestamptz not null default timezone('utc', now()),
+  constraint nexora_social_links_platform_format
+    check (platform ~ '^[a-z0-9-]{1,32}$'),
+  constraint nexora_social_links_label_length
+    check (char_length(label) between 2 and 50),
+  constraint nexora_social_links_url_length
+    check (char_length(url) between 10 and 2048),
+  constraint nexora_social_links_url_format
+    check (url ~* '^https?://[^[:space:]]+$'),
+  constraint nexora_social_links_sort_order_range
+    check (sort_order between 0 and 100000)
+);
+
 alter table public.gallery_works
   add column if not exists category_id uuid,
   add column if not exists creator_id uuid,
@@ -173,6 +194,9 @@ create index if not exists gallery_works_creator_idx
 create index if not exists gallery_works_creator_id_idx
   on public.gallery_works (creator_id);
 
+create index if not exists nexora_social_links_public_order_idx
+  on public.nexora_social_links (is_active, sort_order, created_at);
+
 drop trigger if exists profiles_set_gallery_updated_at on public.profiles;
 create trigger profiles_set_gallery_updated_at
 before update on public.profiles
@@ -186,6 +210,12 @@ for each row execute function public.set_gallery_updated_at();
 drop trigger if exists gallery_works_set_updated_at on public.gallery_works;
 create trigger gallery_works_set_updated_at
 before update on public.gallery_works
+for each row execute function public.set_gallery_updated_at();
+
+drop trigger if exists nexora_social_links_set_updated_at
+  on public.nexora_social_links;
+create trigger nexora_social_links_set_updated_at
+before update on public.nexora_social_links
 for each row execute function public.set_gallery_updated_at();
 
 insert into public.gallery_categories (name, slug, sort_order)
@@ -450,6 +480,7 @@ alter table public.profiles enable row level security;
 alter table public.gallery_categories enable row level security;
 alter table public.gallery_creators enable row level security;
 alter table public.gallery_works enable row level security;
+alter table public.nexora_social_links enable row level security;
 
 drop policy if exists "gallery profile own read" on public.profiles;
 create policy "gallery profile own read"
@@ -538,10 +569,7 @@ create policy "gallery works staff insert"
 on public.gallery_works
 for insert
 to authenticated
-with check (
-  public.is_gallery_staff()
-  and (created_by is null or created_by = auth.uid())
-);
+with check (public.is_gallery_staff());
 
 drop policy if exists "gallery works staff update"
   on public.gallery_works;
@@ -560,14 +588,52 @@ for delete
 to authenticated
 using (public.is_gallery_staff());
 
+drop policy if exists "nexora social links public or staff read"
+  on public.nexora_social_links;
+create policy "nexora social links public or staff read"
+on public.nexora_social_links
+for select
+to anon, authenticated
+using (is_active or public.is_gallery_staff());
+
+drop policy if exists "nexora social links staff insert"
+  on public.nexora_social_links;
+create policy "nexora social links staff insert"
+on public.nexora_social_links
+for insert
+to authenticated
+with check (
+  public.is_gallery_staff()
+  and (created_by is null or created_by = auth.uid())
+);
+
+drop policy if exists "nexora social links staff update"
+  on public.nexora_social_links;
+create policy "nexora social links staff update"
+on public.nexora_social_links
+for update
+to authenticated
+using (public.is_gallery_staff())
+with check (public.is_gallery_staff());
+
+drop policy if exists "nexora social links staff delete"
+  on public.nexora_social_links;
+create policy "nexora social links staff delete"
+on public.nexora_social_links
+for delete
+to authenticated
+using (public.is_gallery_staff());
+
 grant select on public.profiles to authenticated;
 grant select on public.gallery_categories to anon, authenticated;
 grant select on public.gallery_creators to authenticated;
 revoke select on public.gallery_creators from anon;
 grant select on public.gallery_works to anon, authenticated;
+grant select on public.nexora_social_links to anon, authenticated;
 grant insert, update, delete on public.gallery_categories to authenticated;
 grant insert, update, delete on public.gallery_creators to authenticated;
 grant insert, update, delete on public.gallery_works to authenticated;
+grant insert, update, delete on public.nexora_social_links to authenticated;
 
 -- ---------------------------------------------------------------------------
 -- Storage
@@ -660,8 +726,21 @@ begin
       alter publication supabase_realtime
         add table public.gallery_categories;
     end if;
+
+    if not exists (
+      select 1
+      from pg_publication_tables
+      where pubname = 'supabase_realtime'
+        and schemaname = 'public'
+        and tablename = 'nexora_social_links'
+    ) then
+      alter publication supabase_realtime
+        add table public.nexora_social_links;
+    end if;
   end if;
 end
 $$;
+
+notify pgrst, 'reload schema';
 
 commit;

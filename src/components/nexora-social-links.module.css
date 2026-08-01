@@ -1,0 +1,241 @@
+.trigger {
+  border: 0;
+  cursor: pointer;
+  font-family: inherit;
+  min-width: min(100%, 18rem);
+}
+
+.trigger:disabled {
+  cursor: wait;
+  opacity: 0.66;
+}
+
+.backdrop {
+  align-items: center;
+  animation: socialBackdropIn 320ms ease both;
+  backdrop-filter: blur(18px) saturate(0.9);
+  background: rgba(18, 16, 22, 0.56);
+  display: flex;
+  inset: 0;
+  justify-content: center;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding:
+    max(1rem, env(safe-area-inset-top))
+    max(1rem, env(safe-area-inset-right))
+    max(1rem, env(safe-area-inset-bottom))
+    max(1rem, env(safe-area-inset-left));
+  position: fixed;
+  text-align: left;
+  z-index: 70;
+}
+
+.dialog {
+  animation: socialDialogIn 520ms 40ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  background: #f8f6f2;
+  border: 1px solid rgba(23, 21, 27, 0.14);
+  border-radius: 1.5rem;
+  box-shadow: 0 2rem 6rem rgba(18, 16, 22, 0.32);
+  color: #17151b;
+  max-width: 690px;
+  padding: clamp(1.15rem, 4vw, 2rem);
+  width: 100%;
+}
+
+.header {
+  align-items: flex-start;
+  display: flex;
+  gap: 1rem;
+  justify-content: space-between;
+}
+
+.header p {
+  color: #6951d9;
+  font-family: monospace;
+  font-size: 0.58rem;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  margin: 0;
+}
+
+.header h2 {
+  font-size: clamp(2rem, 7vw, 4rem);
+  font-weight: 500;
+  letter-spacing: -0.07em;
+  line-height: 0.92;
+  margin: 0.75rem 0 0;
+  max-width: 30rem;
+}
+
+.closeButton {
+  align-items: center;
+  background: #17151b;
+  border: 0;
+  border-radius: 50%;
+  color: #ffffff;
+  cursor: pointer;
+  display: inline-flex;
+  flex: 0 0 auto;
+  font-size: 1.35rem;
+  height: 3rem;
+  justify-content: center;
+  line-height: 1;
+  width: 3rem;
+}
+
+.description {
+  color: #77717a;
+  font-size: 0.76rem;
+  line-height: 1.7;
+  margin: 1rem 0 0;
+}
+
+.linkGrid {
+  display: grid;
+  gap: 0.7rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-top: 1.5rem;
+}
+
+.socialLink {
+  align-items: center;
+  background: #ffffff;
+  border: 1px solid rgba(23, 21, 27, 0.12);
+  border-radius: 1rem;
+  color: #17151b;
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  min-height: 4.5rem;
+  padding: 0.75rem;
+  text-decoration: none;
+  transition: border-color 180ms ease, transform 180ms ease;
+}
+
+.socialLink:hover {
+  border-color: #6951d9;
+  transform: translateY(-2px);
+}
+
+.platformMark {
+  align-items: center;
+  background: #d8ff65;
+  border-radius: 0.78rem;
+  display: inline-flex;
+  font-family: monospace;
+  font-size: 0.64rem;
+  font-weight: 800;
+  height: 2.75rem;
+  justify-content: center;
+  letter-spacing: -0.03em;
+  width: 2.75rem;
+}
+
+.linkText {
+  min-width: 0;
+}
+
+.linkText strong,
+.linkText small {
+  display: block;
+}
+
+.linkText strong {
+  font-size: 0.78rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.linkText small {
+  color: #77717a;
+  font-size: 0.57rem;
+  margin-top: 0.2rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.linkArrow {
+  color: #6951d9;
+  font-size: 1rem;
+}
+
+.emptyState {
+  align-items: center;
+  border: 1px dashed rgba(23, 21, 27, 0.22);
+  border-radius: 1rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  margin-top: 1.5rem;
+  min-height: 150px;
+  padding: 1rem;
+  text-align: center;
+}
+
+.emptyState strong {
+  font-size: 0.86rem;
+}
+
+.emptyState span {
+  color: #77717a;
+  font-size: 0.68rem;
+  line-height: 1.6;
+  margin-top: 0.35rem;
+}
+
+@media (max-width: 600px) {
+  .backdrop {
+    align-items: flex-end;
+    padding: max(0.65rem, env(safe-area-inset-top)) 0 0;
+  }
+
+  .dialog {
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+    max-height: min(86dvh, 760px);
+    overflow-y: auto;
+    padding-bottom: max(1.25rem, env(safe-area-inset-bottom));
+  }
+
+  .linkGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .closeButton {
+    height: 2.7rem;
+    width: 2.7rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .backdrop,
+  .dialog {
+    animation: none;
+  }
+
+  .socialLink {
+    transition: none;
+  }
+}
+
+@keyframes socialBackdropIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes socialDialogIn {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 24px, 0) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}

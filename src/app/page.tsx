@@ -8,11 +8,11 @@ import type {
 } from "react";
 import { useRouter } from "next/navigation";
 import NexoraLogoMark from "@/components/nexora-logo-mark";
+import NexoraSocialLinks from "@/components/nexora-social-links";
 import ProtectedImage from "@/components/protected-image";
 import { getWhatsAppUrl } from "@/lib/gallery";
 import type { GalleryCategory, GalleryWork } from "@/lib/gallery";
 import { supabase } from "@/lib/supabase";
-import { getNexoraWhatsAppUrl } from "@/lib/site";
 
 type Work = {
   id: string;
@@ -542,7 +542,6 @@ export default function Home() {
   const selectedWhatsAppUrl = selectedWork
     ? getWhatsAppUrl(selectedWork.whatsapp, selectedWork.title)
     : null;
-  const nexoraWhatsAppUrl = getNexoraWhatsAppUrl();
 
   return (
     <main className="nexora-shell">
@@ -891,14 +890,7 @@ export default function Home() {
           </li>
         </ol>
 
-        <a
-          className="primary-button"
-          href={nexoraWhatsAppUrl}
-          rel="noreferrer"
-          target="_blank"
-        >
-          Lanjut ke WhatsApp <span>↗</span>
-        </a>
+        <NexoraSocialLinks />
       </section>
 
       <footer className="site-footer reveal-item" data-reveal>

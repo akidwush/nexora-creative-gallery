@@ -13,6 +13,7 @@ import {
 } from "react";
 import type { FormEvent } from "react";
 import NexoraLogoMark from "@/components/nexora-logo-mark";
+import SocialLinksManager from "@/components/social-links-manager";
 import { supabase } from "@/lib/supabase";
 import {
   createSafeFileName,
@@ -875,6 +876,8 @@ export default function AdminDashboardPage() {
             <p>Kategori</p>
           </article>
         </div>
+
+        <SocialLinksManager />
 
         <section className={styles.workspace}>
           <form
