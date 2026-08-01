@@ -18,6 +18,7 @@ import {
   createSafeFileName,
   EMPTY_WORK_FORM,
   GALLERY_BUCKET,
+  isValidWhatsAppNumber,
   normalizeOptionalUrl,
   normalizeWhatsAppNumber,
   slugify,
@@ -425,6 +426,13 @@ export default function AdminDashboardPage() {
       return;
     }
 
+    if (title.length < 2 || creatorName.length < 2 || description.length < 5) {
+      setErrorMessage(
+        "Judul dan nama kreator minimal 2 karakter; deskripsi minimal 5 karakter.",
+      );
+      return;
+    }
+
     if (!Number.isInteger(year) || year < 1900 || year > 2200) {
       setErrorMessage("Tahun karya tidak valid.");
       return;
@@ -456,6 +464,32 @@ export default function AdminDashboardPage() {
       return;
     }
 
+    const normalizedWhatsapp = normalizeWhatsAppNumber(form.creatorWhatsapp);
+    if (
+      normalizedWhatsapp &&
+      !isValidWhatsAppNumber(normalizedWhatsapp)
+    ) {
+      setErrorMessage(
+        "Nomor WhatsApp harus berisi 8–16 digit setelah kode negara.",
+      );
+      return;
+    }
+
+    let normalizedInstagramUrl: string | null;
+    let normalizedPortfolioUrl: string | null;
+
+    try {
+      normalizedInstagramUrl = normalizeOptionalUrl(form.creatorInstagramUrl);
+      normalizedPortfolioUrl = normalizeOptionalUrl(form.creatorPortfolioUrl);
+    } catch (error) {
+      setErrorMessage(
+        error instanceof Error
+          ? error.message
+          : "Tautan kreator tidak valid.",
+      );
+      return;
+    }
+
     const optimizationSummary = getOptimizationSummary(preparedImage);
 
     setIsSubmitting(true);
@@ -471,6 +505,7 @@ export default function AdminDashboardPage() {
       if (selectedFile) {
         uploadedPath = `${sessionUserId}/${Date.now()}-${createSafeFileName(
           selectedFile.name,
+          selectedFile.type,
         )}`;
 
         const { error: uploadError } = await supabase.storage
@@ -494,9 +529,9 @@ export default function AdminDashboardPage() {
       const creatorPayload = {
         name: creatorName,
         slug: createCreatorSlug(creatorName),
-        whatsapp: normalizeWhatsAppNumber(form.creatorWhatsapp) || null,
-        instagram_url: normalizeOptionalUrl(form.creatorInstagramUrl),
-        portfolio_url: normalizeOptionalUrl(form.creatorPortfolioUrl),
+        whatsapp: normalizedWhatsapp || null,
+        instagram_url: normalizedInstagramUrl,
+        portfolio_url: normalizedPortfolioUrl,
       };
 
       const workPayload = {

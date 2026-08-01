@@ -377,7 +377,16 @@ export default function Home() {
           });
         });
       })
-      .catch(() => undefined);
+      .catch(() => {
+        if (requestId !== filterRequestRef.current) return;
+
+        // Browsers can abort a compositor animation when a tab is backgrounded
+        // or the page is interrupted. Always restore a usable grid state.
+        exitAnimation.cancel();
+        filterAnimationRef.current = null;
+        setActiveCategory(category);
+        setPendingCategory(null);
+      });
   };
 
   const dismissLongPressHint = () => {

@@ -1,11 +1,11 @@
 "use client";
 
 /* Dynamic Supabase images preserve their original proportions. */
-/* eslint-disable @next/next/no-img-element */
 
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import NexoraLogoMark from "@/components/nexora-logo-mark";
 import ProtectedImage from "@/components/protected-image";
 import type { GalleryWork } from "@/lib/gallery";
 import { getWhatsAppUrl } from "@/lib/gallery";
@@ -113,7 +113,7 @@ export default function WorkDetailClient({
           href="/"
           aria-label="Nexora Creative Gallery"
         >
-          <span className={styles.brandMark}>N</span>
+          <NexoraLogoMark className={styles.brandMark} />
           <span>
             <strong>NEXORA</strong>
             <small>CREATIVE GALLERY</small>

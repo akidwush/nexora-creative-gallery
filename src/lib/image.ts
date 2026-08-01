@@ -27,6 +27,30 @@ export function formatFileSize(bytes: number) {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
+export function fitImageWithinDimension(
+  width: number,
+  height: number,
+  maxDimension = MAX_DIMENSION,
+) {
+  if (
+    !Number.isFinite(width) ||
+    !Number.isFinite(height) ||
+    !Number.isFinite(maxDimension) ||
+    width <= 0 ||
+    height <= 0 ||
+    maxDimension <= 0
+  ) {
+    throw new Error("Dimensi gambar tidak valid.");
+  }
+
+  const scale = Math.min(1, maxDimension / Math.max(width, height));
+
+  return {
+    width: Math.max(1, Math.round(width * scale)),
+    height: Math.max(1, Math.round(height * scale)),
+  };
+}
+
 function replaceFileExtension(fileName: string, extension: string) {
   const baseName = fileName.replace(/\.[^/.]+$/, "") || "karya";
   return `${baseName}.${extension}`;
@@ -101,9 +125,9 @@ export async function prepareGalleryImage(
     };
   }
 
-  const initialScale = Math.min(1, MAX_DIMENSION / Math.max(width, height));
-  let outputWidth = Math.max(1, Math.round(width * initialScale));
-  let outputHeight = Math.max(1, Math.round(height * initialScale));
+  const initialDimensions = fitImageWithinDimension(width, height);
+  let outputWidth = initialDimensions.width;
+  let outputHeight = initialDimensions.height;
   let quality = 0.86;
   let blob: Blob | null = null;
 
@@ -121,11 +145,13 @@ export async function prepareGalleryImage(
 
     blob = await canvasToBlob(canvas, "image/webp", quality);
 
-    if (blob.size <= TARGET_OUTPUT_BYTES) break;
+    if (blob.size <= TARGET_OUTPUT_BYTES || attempt === 5) break;
 
     quality = Math.max(0.58, quality - 0.08);
-    outputWidth = Math.max(MIN_DIMENSION, Math.round(outputWidth * 0.88));
-    outputHeight = Math.max(MIN_DIMENSION, Math.round(outputHeight * 0.88));
+    // Scale both axes by exactly the same factor. Clamping each axis to the
+    // minimum source resolution distorted panoramic and portrait artwork.
+    outputWidth = Math.max(1, Math.round(outputWidth * 0.88));
+    outputHeight = Math.max(1, Math.round(outputHeight * 0.88));
   }
 
   if (!blob) throw new Error("Gambar gagal dioptimalkan.");
@@ -141,7 +167,8 @@ export async function prepareGalleryImage(
 
   const shouldUseOriginal =
     sourceFile.size <= TARGET_OUTPUT_BYTES &&
-    initialScale === 1 &&
+    initialDimensions.width === width &&
+    initialDimensions.height === height &&
     optimizedFile.size >= sourceFile.size;
 
   return {

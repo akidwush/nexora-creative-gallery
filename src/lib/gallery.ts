@@ -74,6 +74,24 @@ export const DEFAULT_GALLERY_CATEGORIES = [
   "Lainnya",
 ] as const;
 
+const GALLERY_WORK_ID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+const FILE_EXTENSION_BY_MIME_TYPE: Record<string, string> = {
+  "image/gif": "gif",
+  "image/jpeg": "jpg",
+  "image/png": "png",
+  "image/webp": "webp",
+};
+
+const ALLOWED_FILE_EXTENSIONS = new Set([
+  "gif",
+  "jpeg",
+  "jpg",
+  "png",
+  "webp",
+]);
+
 export function slugify(value: string) {
   return value
     .trim()
@@ -89,11 +107,35 @@ export function normalizeOptionalUrl(value: string) {
   const trimmed = value.trim();
   if (!trimmed) return null;
 
-  if (/^https?:\/\//i.test(trimmed)) {
-    return trimmed;
+  if (
+    /^[a-z][a-z0-9+.-]*:/i.test(trimmed) &&
+    !/^https?:\/\//i.test(trimmed)
+  ) {
+    throw new Error(
+      "Tautan kreator tidak valid. Gunakan alamat http:// atau https://.",
+    );
   }
 
-  return `https://${trimmed}`;
+  const candidate = /^https?:\/\//i.test(trimmed)
+    ? trimmed
+    : `https://${trimmed}`;
+
+  try {
+    const url = new URL(candidate);
+
+    if (
+      (url.protocol !== "http:" && url.protocol !== "https:") ||
+      !url.hostname
+    ) {
+      throw new Error();
+    }
+
+    return url.toString();
+  } catch {
+    throw new Error(
+      "Tautan kreator tidak valid. Gunakan alamat http:// atau https://.",
+    );
+  }
 }
 
 export function normalizeWhatsAppNumber(value: string) {
@@ -101,12 +143,21 @@ export function normalizeWhatsAppNumber(value: string) {
   if (!digits) return "";
   if (digits.startsWith("0")) return `62${digits.slice(1)}`;
   if (digits.startsWith("62")) return digits;
+  if (digits.startsWith("8")) return `62${digits}`;
   return digits;
+}
+
+export function isValidWhatsAppNumber(value: string) {
+  return /^[0-9]{8,16}$/.test(value);
+}
+
+export function isGalleryWorkId(value: string) {
+  return GALLERY_WORK_ID_PATTERN.test(value);
 }
 
 export function getWhatsAppUrl(value: string | null | undefined, title?: string) {
   const number = normalizeWhatsAppNumber(value ?? "");
-  if (!number) return null;
+  if (!number || !isValidWhatsAppNumber(number)) return null;
 
   const message = title
     ? `Halo, saya tertarik dengan karya \"${title}\" yang tampil di Nexora Creative Gallery.`
@@ -115,8 +166,17 @@ export function getWhatsAppUrl(value: string | null | undefined, title?: string)
   return `https://wa.me/${number}?text=${encodeURIComponent(message)}`;
 }
 
-export function createSafeFileName(fileName: string) {
-  const extension = fileName.split(".").pop()?.toLowerCase() || "jpg";
+export function createSafeFileName(fileName: string, mimeType?: string) {
+  const fileExtension = fileName
+    .split(".")
+    .pop()
+    ?.toLowerCase()
+    .replace(/[^a-z0-9]/g, "");
+  const extension = mimeType
+    ? (FILE_EXTENSION_BY_MIME_TYPE[mimeType] ?? "jpg")
+    : fileExtension && ALLOWED_FILE_EXTENSIONS.has(fileExtension)
+      ? fileExtension
+      : "jpg";
   const baseName = fileName
     .replace(/\.[^/.]+$/, "")
     .normalize("NFKD")
@@ -125,5 +185,5 @@ export function createSafeFileName(fileName: string) {
     .replace(/^-+|-+$/g, "")
     .slice(0, 60);
 
-  return `${baseName || "karya"}.${extension}`;
+  return `${baseName || "karya"}.${extension || "jpg"}`;
 }

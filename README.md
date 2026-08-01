@@ -6,6 +6,7 @@ Website galeri karya visual Nexora menggunakan Next.js 16 dan Supabase.
 
 - Galeri masonry responsif dengan filter kategori dan pencarian.
 - Detail karya beserta WhatsApp, Instagram, dan portfolio kreator.
+- Detail karya dirender di server dengan HTTP 404 dan metadata sosial dinamis.
 - Login admin/editor menggunakan Supabase Auth.
 - Dashboard upload, edit, draft/publikasi, unggulan, dan hapus karya.
 - Upload gambar ke Supabase Storage dengan batas 50 MB.
@@ -49,10 +50,12 @@ role = editor
 ```bash
 cd ~/nexora-gallery
 npm install
+npm test
 npm run build
 ```
 
 Script build sudah menggunakan Webpack agar kompatibel dengan Android/Termux.
+Untuk pemeriksaan lengkap sebelum push, jalankan `npm run check`.
 
 ## 4. Deploy
 

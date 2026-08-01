@@ -13,9 +13,26 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Nexora Creative Gallery",
+  title: {
+    default: "Nexora Creative Gallery",
+    template: "%s | Nexora Creative Gallery",
+  },
   description:
     "Galeri resmi karya pemenang event dan challenge Nexora.",
+  applicationName: "Nexora Creative Gallery",
+  category: "design",
+  openGraph: {
+    type: "website",
+    locale: "id_ID",
+    siteName: "Nexora Creative Gallery",
+    title: "Nexora Creative Gallery",
+    description: "Galeri resmi karya pemenang event dan challenge Nexora.",
+  },
+  twitter: {
+    card: "summary",
+    title: "Nexora Creative Gallery",
+    description: "Galeri resmi karya pemenang event dan challenge Nexora.",
+  },
   icons: {
     icon: [{ url: "/nexora-logo-icon.jpg", type: "image/jpeg" }],
     shortcut: ["/nexora-logo-icon.jpg"],
